@@ -15,6 +15,8 @@ M_FT_FACTOR = 3.280839895       # m * factor converts to feet
 SEP_REP_HOR = 3.5               # 3nm is min sep
 SEP_REP_VER = 1250              # 1000ft is min sep
 
+POSSIBLE_ACTIONS = {'LEFT', 'RIGHT', 'DIR', 'LNAV'}
+
 ### Initialization function of your plugin. Do not change the name of this
 ### function, as it is the way BlueSky recognises this file as a plugin.
 def init_plugin():
@@ -89,11 +91,13 @@ def direct_distance(hor: float, ver: int) -> float:
     return sqrt(hor ** 2 + ft_to_nm(ver) ** 2)
 
 
-def get_state_reward():
+def give_reward():
+    # TODO: determine reward (-1 for collision, [0-1] for avoid + time
     pass
 
 
-def is_allowed_move():
+def get_allowed_moves(traf, acid: str) -> set(str):
+    # TODO: fix constraints for certain moves (e.g. what waypoint can be used for direct)
     pass
 
 
@@ -138,8 +142,9 @@ def update():
     # transition probability = incresed in higher risk situations
     # reward = based on minimized additional time
 
-    # TODO: determine possible conflicts --> add to set of pairs, ordered by proximity within pairs
-    # TODO: provide instruction
+    # DONE: determine possible conflicts --> add to set of pairs, ordered by proximity within pairs
+    # TODO: get set of allowed actions
+    # TODO: determine best action
     # TODO: eval ac of previous instructions (desire to go back to VNAV)
     # TODO: reward function
 
