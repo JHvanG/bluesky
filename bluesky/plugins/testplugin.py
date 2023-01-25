@@ -13,9 +13,12 @@ from bluesky.tools import geo, areafilter
 FT_NM_FACTOR = 0.000164578834   # ft * factor converts to nm
 M_FT_FACTOR = 3.280839895       # m * factor converts to feet
 SEP_REP_HOR = 3.5               # 3nm is min sep
-SEP_REP_VER = 1250              # 1000ft is min sep
+SEP_REP_VER = 1500              # 1000ft is min sep
+SEP_MIN_HOR = 3.0
+SEP_MIN_VER = 1000
 
 POSSIBLE_ACTIONS = {'LEFT', 'RIGHT', 'DIR', 'LNAV'}
+
 
 ### Initialization function of your plugin. Do not change the name of this
 ### function, as it is the way BlueSky recognises this file as a plugin.
@@ -79,6 +82,89 @@ def ft_to_nm(alt: int) -> float:
     return alt * FT_NM_FACTOR
 
 
+def within_stated_area(lat1: float, lat2: float, lon1: float, lon2: float,
+                       alt1: int, alt2: int, h_lim: float, v_lim: int) -> bool:
+    """
+    This function returns true when two aircraft are within the stated area.
+
+    :param lat1: ac1 latitude
+    :param lat2: ac2 latitude
+    :param lon1: ac1 longitude
+    :param lon2: ac2 longitude
+    :param alt1: ac1 altitude
+    :param alt2: ac2 altitude
+    :param h_lim: horizontal limit
+    :param v_lim: vertical limit
+    :return: boolean of within limits
+    """
+    _, dist_h = geo.qdrdist(lat1, lon1, lat2, lon2)  # bearing, distance (nm)
+    dist_v = abs(alt1 - alt2)
+
+    if dist_h <= h_lim and dist_v <= v_lim:
+        return True
+    else:
+        return False
+
+
+def is_within_alert_distance(positions, ac1: str, ac2: str) -> bool:
+    """
+    This function returns a boolean indicating whether two aircraft are within the notification area.
+
+    :param positions: Traffic object containing all info on the present traffic
+    :param ac1: id of aircraft 1
+    :param ac2: id of aircraft 2
+    :return: boolean for a loss of separation
+    """
+    lat1 = positions[ac1].lat
+    lat2 = positions[ac2].lat
+    lon1 = positions[ac1].lon
+    lon2 = positions[ac2].lon
+    alt1 = positions[ac1].alt
+    alt2 = positions[ac2].alt
+
+    return within_stated_area(lat1, lat2, lon1, lon2, alt1, alt2, SEP_REP_HOR, SEP_REP_VER)
+
+
+def is_loss_of_separation(positions, ac1: str, ac2: str) -> bool:
+    """
+    This function returns a boolean indicating whether a loss of separation has occured.
+
+    :param positions: Traffic object containing all info on the present traffic
+    :param ac1: id of aircraft 1
+    :param ac2: id of aircraft 2
+    :return: boolean for a loss of separation
+    """
+    lat1 = positions[ac1].lat
+    lat2 = positions[ac2].lat
+    lon1 = positions[ac1].lon
+    lon2 = positions[ac2].lon
+    alt1 = positions[ac1].alt
+    alt2 = positions[ac2].alt
+
+    return within_stated_area(lat1, lat2, lon1, lon2, alt1, alt2, SEP_MIN_HOR, SEP_MIN_VER)
+
+
+def has_reached_goal(positions, destinations, ac: str) -> bool:
+    """
+    This function determines when an aircraft has reached its goal position (the last waypoint in its route).
+
+    :param positions: list of positions and altitudes of all aircraft in the sim
+    :param destinations: list of destinations of the aircraft in the sim
+    :param ac: aircraft in question
+    :return: boolean of reached goal status
+    """
+    destination = destinations[ac]
+    lat, lon, _ = positions[ac]
+    # destination = "EH007"
+    wplat = navdb.wplat[navdb.wpid.index(destination)]
+    wplon = navdb.wplon[navdb.wpid.index(destination)]
+
+    if wplat == lat and wplon == lon:
+        return True
+    else:
+        return False
+
+
 def direct_distance(hor: float, ver: int) -> float:
     """
     Using the Pythagorean Theorem, the straight-line distance is computed based on the horizontal and vertical distance.
@@ -91,14 +177,14 @@ def direct_distance(hor: float, ver: int) -> float:
     return sqrt(hor ** 2 + ft_to_nm(ver) ** 2)
 
 
-def give_reward():
-    # TODO: determine reward (-1 for collision, [0-1] for avoid + time
-    pass
-
-
-def get_allowed_moves(traf, acid: str) -> set(str):
-    # TODO: fix constraints for certain moves (e.g. what waypoint can be used for direct)
-    pass
+def get_reward(positions, destinations, ac1: str, ac2: str) -> int:
+    # TODO: make more complex
+    if is_loss_of_separation(positions, ac1, ac2):
+        return -1
+    elif has_reached_goal(positions, destinations, ac1) or has_reached_goal(positions, destinations, ac2):
+        return 1
+    else:
+        return 0
 
 
 def get_conflict_pairs(position_list: dict) -> list[tuple[str, str]]:
@@ -149,7 +235,7 @@ def update():
     # TODO: reward function
 
     positions = {}
-
+    destinations = traf.ap.dest
     # gather aircraft positions
     for acid, lat, lon, alt_m in zip(traf.id, traf.lat, traf.lon, traf.alt):
         alt = m_to_ft(alt_m)
@@ -160,6 +246,9 @@ def update():
 
     collision_pairs = get_conflict_pairs(positions)     # list of tuples
     print(collision_pairs)
+    print(destinations)
+
+    has_reached_goal(None, None, None)
 
 
 def reset():
