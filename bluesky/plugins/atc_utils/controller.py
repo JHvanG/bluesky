@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
-from replay_buffer import ReplayBuffer
+from bluesky.plugins.atc_utils.replay_buffer import ReplayBuffer
+from bluesky.plugins.atc_utils.state import State
 from tensorflow import keras
 from keras import layers
 
@@ -62,7 +63,7 @@ class Controller(object):
 
         return act1_enc + act2_enc
 
-    def store(self, state, act1, act2, reward, next_state):
+    def store(self, state: State, act1: str, act2: str, reward: int, next_state: State):
         """
         This function saves the experience from the current action and its result.
 
@@ -73,7 +74,7 @@ class Controller(object):
         :param next_state: state reached from the taken action
         """
         action = self.encode_actions(act1, act2)
-        self.replay_buffer.store_experience(state, next_state, reward, action)
+        self.replay_buffer.store_experience(state, action, reward, next_state)
         pass
 
     def act(self, state) -> (str, str):

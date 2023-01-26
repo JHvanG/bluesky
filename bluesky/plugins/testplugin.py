@@ -11,6 +11,7 @@ from bluesky.tools.aero import ft
 from bluesky.tools import geo, areafilter
 
 from bluesky.plugins.atc_utils.state import State
+from bluesky.plugins.atc_utils.controller import Controller
 
 FT_NM_FACTOR = 0.000164578834   # ft * factor converts to nm
 M_FT_FACTOR = 3.280839895       # m * factor converts to feet
@@ -23,14 +24,14 @@ POSSIBLE_ACTIONS = {'LEFT', 'RIGHT', 'DIR', 'LNAV'}
 
 PREVIOUS_ACTIONS = []           # buffer for previous actions with the given state and the aircraft pair
 
+CONTROLLER = Controller()       # atc agent based on a DQN
+
 
 ### Initialization function of your plugin. Do not change the name of this
 ### function, as it is the way BlueSky recognises this file as a plugin.
 def init_plugin():
 
     # Addtional initilisation code
-
-    # TODO: INTIALIZE REWARDS ETC. TO 0 --> DO I WANT THIS GLOBALLY OR LOCALLY
 
     # Configuration parameters
     config = {
@@ -86,22 +87,43 @@ def ft_to_nm(alt: int) -> float:
     return alt * FT_NM_FACTOR
 
 
-def get_state_info(ac: str) -> (float, float, int, int, str, str):
+def get_next_two_waypoints(idx: int) -> (str, str):
     """
-    This function returns all information required to build a state.
+    Function that returns the next two waypoints of an aircraft, or doubles the only waypoint if there is just one.
 
-    :param ac: string of aircraft ID
-    :return: lat, lon, alt, tas, current waypoint, next waypoint
+    :param idx: index of the aircraft
+    :return:
     """
-    idx = traf.acid.index(ac)
-
     cur = traf.ap.route[idx].wpname[0]
+
     if len(traf.ap.route[idx].wpname) > 1:
         nxt = traf.ap.route[idx].wpname[1]
     else:
         nxt = traf.ap.route[idx].wpname[0]
 
-    return traf.lat[idx], traf.lon[idx], traf.alt[idx], traf.tas[idx], cur, nxt
+    return cur, nxt
+
+
+def get_current_state(ac1: str, ac2: str) -> State:
+    """
+    This function returns all information required to build a state.
+
+    :param ac1: string of aircraft 1's ID
+    :param ac2: string of aircraft 2's ID
+    :return: current state given the two aircraft
+    """
+    idx1 = traf.acid.index(ac1)
+    idx2 = traf.acid.index(ac2)
+
+    cur1, nxt1 = get_next_two_waypoints(idx1)
+    cur2, nxt2 = get_next_two_waypoints(idx2)
+
+    current_state = State(
+        traf.lat[idx1], traf.lon[idx1], traf.alt[idx1], traf.tas[idx1], cur1, nxt1,
+        traf.lat[idx2], traf.lon[idx2], traf.alt[idx2], traf.tas[idx2], cur2, nxt2
+    )
+
+    return current_state
 
 
 def within_stated_area(lat1: float, lat2: float, lon1: float, lon2: float,
@@ -268,21 +290,26 @@ def update():
     # TODO: reward function
     # ------------------------------------------------------------------------------------------------------------------
 
-    # TODO: check if instruction was given at t - 1 -> previous_experience != None
-    # TODO:     reward = self.get_reward(positions, destinations, ac1, ac2) --> reward is not available before action
-    # TODO:     then self.controller.store(previous_experience[idx], state) --> store this in a handy manner
+    # DONE: check if instruction was given at t - 1 -> previous_experience != None
+    # DONE:     reward = self.get_reward(positions, destinations, ac1, ac2) --> reward is not available before action
+    # DONE:     then self.controller.store(previous_experience[idx], state) --> store this in a handy manner
 
     if PREVIOUS_ACTIONS:
         while PREVIOUS_ACTIONS:
-            prev_state, action, ac1, ac2 = PREVIOUS_ACTIONS.pop()
+            prev_state, action1, action2, ac1, ac2 = PREVIOUS_ACTIONS.pop()
 
-            current_state = State()
+            current_state = get_current_state(ac1, ac2)
 
-    # TODO: check for new pairs
-    # TODO:     then for all pairs:
-    # TODO:         actions = self.controller.act(state)
+            # the reward is based on the current state, so can be taken directly from info of the simulator
+            reward = get_reward(ac1, ac2)
+
+            CONTROLLER.store(prev_state, action1, action2, reward, current_state)
+
+    # DONE: check for new pairs
+    # DONE:     then for all pairs:
+    # DONE:         actions = self.controller.act(state)
     # TODO:         do actions
-    # TODO:         previous_experience.append((state, actions))
+    # DONE:         previous_experience.append((state, actions, aircraft))
 
     positions = {}
 
@@ -291,12 +318,25 @@ def update():
         alt = m_to_ft(alt_m)
         positions[acid] = (lat, lon, alt)
 
-    # there is a possibility of not having any conflicts
+    # there is a possibility of not having any aircraft
     if not positions:
         return
 
     collision_pairs = get_conflict_pairs(positions)     # list of tuples
-    print(collision_pairs)
+
+    # there is a possibility of not having any conflicts
+    if not collision_pairs:
+        return
+
+    for ac1, ac2 in collision_pairs:
+        current_state = get_current_state(ac1, ac2)
+
+        action1, action2 = CONTROLLER.act(current_state)
+
+        # TODO: give aircraft instructions
+
+        PREVIOUS_ACTIONS.append((current_state, action1, action2, ac1, ac2))
+
     return
 
 
