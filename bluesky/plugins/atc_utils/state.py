@@ -13,3 +13,9 @@ class State(object):
         self.tas2 = tas2
         self.cur2 = cur2
         self.nxt2 = nxt2
+
+    def get_next_state(self, ac: int):
+        if ac == 1:
+            return self.nxt1
+        elif ac == 2:
+            return self.nxt2

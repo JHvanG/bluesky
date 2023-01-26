@@ -15,12 +15,11 @@ from bluesky.plugins.atc_utils.controller import Controller
 
 FT_NM_FACTOR = 0.000164578834   # ft * factor converts to nm
 M_FT_FACTOR = 3.280839895       # m * factor converts to feet
-SEP_REP_HOR = 3.5               # 3nm is min sep
-SEP_REP_VER = 1500              # 1000ft is min sep
-SEP_MIN_HOR = 3.0
-SEP_MIN_VER = 1000
-
-POSSIBLE_ACTIONS = {'LEFT', 'RIGHT', 'DIR', 'LNAV'}
+SEP_REP_HOR = 3.5               # report within 3.5 nm
+SEP_REP_VER = 1500              # report within 1500 ft
+SEP_MIN_HOR = 3.0               # 3 nm is min sep
+SEP_MIN_VER = 1000              # 1000 ft is min sep
+HDG_CHANGE = 15.0               # HDG change instruction deviates 15 degrees from original
 
 PREVIOUS_ACTIONS = []           # buffer for previous actions with the given state and the aircraft pair
 
@@ -276,6 +275,54 @@ def get_conflict_pairs(position_list: dict) -> list[tuple[str, str]]:
     return sorted_conflicts
 
 
+def engage_lnav(ac: str):
+    stack.stack(f"LNAV {ac} ON")
+    return
+
+
+def direct_to_wpt(ac: str, wpt: str):
+    stack.stack(f"DIRECT {ac} {wpt}")
+    return
+
+
+def change_heading(ac: str, right: bool):
+    """
+    This function alters the heading of an aircraft by HDG_CHANGE degrees, keeping between 0 and 360 degrees.
+
+    :param ac: aircraft id string
+    :param right: boolean that is true when a right turn is required
+    """
+    if right:
+        hdg_change = HDG_CHANGE
+    else:
+        hdg_change = -1 * HDG_CHANGE
+
+    current_hdg = traf.hdg[traf.acid.index(ac)]
+
+    hdg = (current_hdg + hdg_change) % 360
+
+    stack.stack(f"HDG {ac} {hdg}")
+    return
+
+
+def handle_instruction(ac: str, action: str, wpt: str = None):
+    """
+    This function checks what instruction was given and calls the appropriate functions to handle these instrucitons.
+
+    :param ac: aircraft id of aircraft that was given an instruction
+    :param action: action that needs to be taken
+    :param wpt: possible waypoint if a DIR instruction is given
+    """
+    if action == "HDG_L":
+        change_heading(ac, False)
+    elif action == "HDG_R":
+        change_heading(ac, True)
+    elif action == "DIR":
+        direct_to_wpt(ac, wpt)
+    elif action == "LNAV":
+        engage_lnav(ac)
+
+
 def update():
     """
     This is where the RL functionality should occur
@@ -286,14 +333,15 @@ def update():
 
     # TODO: get set of allowed actions
     # TODO: determine best action
-    # TODO: eval ac of previous instructions (desire to go back to VNAV)
-    # TODO: reward function
+    # TODO: handle aircraft that were given previous instructions (desire to go back to LNAV)
+    # TODO: reward function needs to be made more complex
     # ------------------------------------------------------------------------------------------------------------------
 
     # DONE: check if instruction was given at t - 1 -> previous_experience != None
     # DONE:     reward = self.get_reward(positions, destinations, ac1, ac2) --> reward is not available before action
     # DONE:     then self.controller.store(previous_experience[idx], state) --> store this in a handy manner
 
+    # first check if an instruction was given at t - 1, then the experience buffer needs to be updated
     if PREVIOUS_ACTIONS:
         while PREVIOUS_ACTIONS:
             prev_state, action1, action2, ac1, ac2 = PREVIOUS_ACTIONS.pop()
@@ -308,7 +356,7 @@ def update():
     # DONE: check for new pairs
     # DONE:     then for all pairs:
     # DONE:         actions = self.controller.act(state)
-    # TODO:         do actions
+    # DONE:         do actions
     # DONE:         previous_experience.append((state, actions, aircraft))
 
     positions = {}
@@ -328,12 +376,14 @@ def update():
     if not collision_pairs:
         return
 
+    # give instructions to the aircraft and save the state, actions and corresponding aircraft id's
     for ac1, ac2 in collision_pairs:
         current_state = get_current_state(ac1, ac2)
 
         action1, action2 = CONTROLLER.act(current_state)
 
-        # TODO: give aircraft instructions
+        handle_instruction(ac1, action1, current_state.get_next_state(1))
+        handle_instruction(ac2, action2, current_state.get_next_state(2))
 
         PREVIOUS_ACTIONS.append((current_state, action1, action2, ac1, ac2))
 
