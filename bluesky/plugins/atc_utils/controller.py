@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from bluesky.plugins.atc_utils.replay_buffer import ReplayBuffer
+from replay_buffer import ReplayBuffer
 from tensorflow import keras
 from keras import layers
 
@@ -20,7 +20,6 @@ class Controller(object):
         self.encoding = {"HDG_L": 0, "HDG_R": 1, "DIR": 2, "LNAV": 3}
         self.num_actions = len(self.encoding)
 
-
     def decode_actions(self, ohe_action: list[int]) -> (bool, str, str):
         """
         This function decodes the output of the Deep-Q Network, which is a one-hot encoding of the actions of both
@@ -35,33 +34,13 @@ class Controller(object):
             return False, None, None
 
         ohe_action1 = ohe_action[:int(self.num_actions)]
-        ohe_action2 = ohe_action[int(self.num_actions):int(self.num_actions)]
-        print(ohe_action1.count(1))
-        print(ohe_action2.count(1))
+        ohe_action2 = ohe_action[int(self.num_actions):int(self.num_actions*2)]
 
         if ohe_action1.count(1) != 1 or ohe_action2.count(1) != 1:
-            print("hello")
             return False, None, None
 
-        action = None
-        action1 = None
-        action2 = None
-
-        for idx in range(len(ohe_action1)):
-            # TODO: use encoding
-            if idx == 0:
-                action = 'HDG_L'
-            elif idx == 1:
-                action = 'HDG_R'
-            elif idx == 2:
-                action = 'DIR'
-            elif idx == 3:
-                action = 'LNAV'
-
-            if ohe_action1[idx] == 1:
-                action1 = action
-            if ohe_action2[idx] == 1:
-                action2 = action
+        action1 = list(self.encoding.keys())[list(self.encoding.values()).index(ohe_action1.index(1))]
+        action2 = list(self.encoding.keys())[list(self.encoding.values()).index(ohe_action2.index(1))]
 
         return True, action1, action2
 
@@ -83,6 +62,20 @@ class Controller(object):
 
         return act1_enc + act2_enc
 
+    def store(self, state, act1, act2, reward, next_state):
+        """
+        This function saves the experience from the current action and its result.
+
+        :param state: state from which the action was taken
+        :param act1: action taken by first aircraft in the conflict
+        :param act2: action taken by the second aircraft in the conflict
+        :param reward: reward from the taken action
+        :param next_state: state reached from the taken action
+        """
+        action = self.encode_actions(act1, act2)
+        self.replay_buffer.store_experience(state, next_state, reward, action)
+        pass
+
     def act(self, state) -> (str, str):
         """
         Returns actions for the given state.
@@ -98,11 +91,6 @@ class Controller(object):
             raise Exception("Model failed to produce legitimate output")
 
         return act1, act2
-
-    def store(self, state, act1, act2, reward, next_state):
-        action = self.encode_actions(act1, act2)
-        self.replay_buffer.store_experience(state, next_state, reward, action)
-        pass
 
     def _create_model(self) -> keras.Model:
         """
@@ -127,7 +115,7 @@ class Controller(object):
 
 if __name__ == "__main__":
     controller = Controller()
-    test_list = [0, 1, 0, 0, 0, 0, 1, 0]
+    test_list = [0, 0, 0, 1, 0, 0, 1, 0]
     status, act1, act2 = controller.decode_actions(test_list)
 
     if not status:

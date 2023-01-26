@@ -3,7 +3,7 @@ import numpy as np
 from collections import deque
 
 
-class ReplayBuffer:
+class ReplayBuffer(object):
     """
     This class represents the buffer used for experience replay.
     """

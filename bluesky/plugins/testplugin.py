@@ -10,6 +10,8 @@ from bluesky import navdb
 from bluesky.tools.aero import ft
 from bluesky.tools import geo, areafilter
 
+from bluesky.plugins.atc_utils.state import State
+
 FT_NM_FACTOR = 0.000164578834   # ft * factor converts to nm
 M_FT_FACTOR = 3.280839895       # m * factor converts to feet
 SEP_REP_HOR = 3.5               # 3nm is min sep
@@ -18,6 +20,8 @@ SEP_MIN_HOR = 3.0
 SEP_MIN_VER = 1000
 
 POSSIBLE_ACTIONS = {'LEFT', 'RIGHT', 'DIR', 'LNAV'}
+
+PREVIOUS_ACTIONS = []           # buffer for previous actions with the given state and the aircraft pair
 
 
 ### Initialization function of your plugin. Do not change the name of this
@@ -82,6 +86,24 @@ def ft_to_nm(alt: int) -> float:
     return alt * FT_NM_FACTOR
 
 
+def get_state_info(ac: str) -> (float, float, int, int, str, str):
+    """
+    This function returns all information required to build a state.
+
+    :param ac: string of aircraft ID
+    :return: lat, lon, alt, tas, current waypoint, next waypoint
+    """
+    idx = traf.acid.index(ac)
+
+    cur = traf.ap.route[idx].wpname[0]
+    if len(traf.ap.route[idx].wpname) > 1:
+        nxt = traf.ap.route[idx].wpname[1]
+    else:
+        nxt = traf.ap.route[idx].wpname[0]
+
+    return traf.lat[idx], traf.lon[idx], traf.alt[idx], traf.tas[idx], cur, nxt
+
+
 def within_stated_area(lat1: float, lat2: float, lon1: float, lon2: float,
                        alt1: int, alt2: int, h_lim: float, v_lim: int) -> bool:
     """
@@ -106,58 +128,64 @@ def within_stated_area(lat1: float, lat2: float, lon1: float, lon2: float,
         return False
 
 
-def is_within_alert_distance(positions, ac1: str, ac2: str) -> bool:
+def is_within_alert_distance(ac1: str, ac2: str) -> bool:
     """
     This function returns a boolean indicating whether two aircraft are within the notification area.
 
-    :param positions: Traffic object containing all info on the present traffic
     :param ac1: id of aircraft 1
     :param ac2: id of aircraft 2
     :return: boolean for a loss of separation
     """
-    lat1 = positions[ac1].lat
-    lat2 = positions[ac2].lat
-    lon1 = positions[ac1].lon
-    lon2 = positions[ac2].lon
-    alt1 = positions[ac1].alt
-    alt2 = positions[ac2].alt
+    idx1 = traf.acid.index(ac1)
+    idx2 = traf.acid.index(ac2)
+
+    lat1 = traf.lat[idx1]
+    lat2 = traf.lat[idx2]
+    lon1 = traf.lon[idx1]
+    lon2 = traf.lon[idx2]
+    alt1 = traf.alt[idx1]
+    alt2 = traf.alt[idx2]
 
     return within_stated_area(lat1, lat2, lon1, lon2, alt1, alt2, SEP_REP_HOR, SEP_REP_VER)
 
 
-def is_loss_of_separation(positions, ac1: str, ac2: str) -> bool:
+def is_loss_of_separation(ac1: str, ac2: str) -> bool:
     """
-    This function returns a boolean indicating whether a loss of separation has occured.
+    This function returns a boolean indicating whether a loss of separation has occurred.
 
-    :param positions: Traffic object containing all info on the present traffic
     :param ac1: id of aircraft 1
     :param ac2: id of aircraft 2
     :return: boolean for a loss of separation
     """
-    lat1 = positions[ac1].lat
-    lat2 = positions[ac2].lat
-    lon1 = positions[ac1].lon
-    lon2 = positions[ac2].lon
-    alt1 = positions[ac1].alt
-    alt2 = positions[ac2].alt
+    idx1 = traf.acid.index(ac1)
+    idx2 = traf.acid.index(ac2)
+
+    lat1 = traf.lat[idx1]
+    lat2 = traf.lat[idx2]
+    lon1 = traf.lon[idx1]
+    lon2 = traf.lon[idx2]
+    alt1 = traf.alt[idx1]
+    alt2 = traf.alt[idx2]
 
     return within_stated_area(lat1, lat2, lon1, lon2, alt1, alt2, SEP_MIN_HOR, SEP_MIN_VER)
 
 
-def has_reached_goal(positions, destinations, ac: str) -> bool:
+def has_reached_goal(ac: str) -> bool:
     """
     This function determines when an aircraft has reached its goal position (the last waypoint in its route).
 
-    :param positions: list of positions and altitudes of all aircraft in the sim
-    :param destinations: list of destinations of the aircraft in the sim
     :param ac: aircraft in question
     :return: boolean of reached goal status
     """
-    destination = destinations[ac]
-    lat, lon, _ = positions[ac]
+
+    idx = traf.acid.index(ac)
+
+    lat = traf.lat[idx]
+    lon = traf.lon[idx]
+    dest = traf.ap.dest[idx]
     # destination = "EH007"
-    wplat = navdb.wplat[navdb.wpid.index(destination)]
-    wplon = navdb.wplon[navdb.wpid.index(destination)]
+    wplat = navdb.wplat[navdb.wpid.index(dest)]
+    wplon = navdb.wplon[navdb.wpid.index(dest)]
 
     if wplat == lat and wplon == lon:
         return True
@@ -177,11 +205,18 @@ def direct_distance(hor: float, ver: int) -> float:
     return sqrt(hor ** 2 + ft_to_nm(ver) ** 2)
 
 
-def get_reward(positions, destinations, ac1: str, ac2: str) -> int:
+def get_reward(ac1: str, ac2: str) -> int:
+    """
+    This function returns the reward obtained from the action that was taken.
+
+    :param ac1: first aircraft in the conflict
+    :param ac2: second aircraft in the conflict
+    :return: integer reward
+    """
     # TODO: make more complex
-    if is_loss_of_separation(positions, ac1, ac2):
+    if is_loss_of_separation(ac1, ac2):
         return -1
-    elif has_reached_goal(positions, destinations, ac1) or has_reached_goal(positions, destinations, ac2):
+    elif has_reached_goal(ac1) or has_reached_goal(ac2):
         return 1
     else:
         return 0
@@ -223,32 +258,46 @@ def update():
     """
     This is where the RL functionality should occur
     """
-    # state = lat, long, alt, tas, rte
-    # actionset = HDG +/-, DIR, LNAV
-    # transition probability = incresed in higher risk situations
-    # reward = based on minimized additional time
 
+    # ------------------------------------------------------------------------------------------------------------------
     # DONE: determine possible conflicts --> add to set of pairs, ordered by proximity within pairs
+
     # TODO: get set of allowed actions
     # TODO: determine best action
     # TODO: eval ac of previous instructions (desire to go back to VNAV)
     # TODO: reward function
+    # ------------------------------------------------------------------------------------------------------------------
+
+    # TODO: check if instruction was given at t - 1 -> previous_experience != None
+    # TODO:     reward = self.get_reward(positions, destinations, ac1, ac2) --> reward is not available before action
+    # TODO:     then self.controller.store(previous_experience[idx], state) --> store this in a handy manner
+
+    if PREVIOUS_ACTIONS:
+        while PREVIOUS_ACTIONS:
+            prev_state, action, ac1, ac2 = PREVIOUS_ACTIONS.pop()
+
+            current_state = State()
+
+    # TODO: check for new pairs
+    # TODO:     then for all pairs:
+    # TODO:         actions = self.controller.act(state)
+    # TODO:         do actions
+    # TODO:         previous_experience.append((state, actions))
 
     positions = {}
-    destinations = traf.ap.dest
+
     # gather aircraft positions
     for acid, lat, lon, alt_m in zip(traf.id, traf.lat, traf.lon, traf.alt):
         alt = m_to_ft(alt_m)
         positions[acid] = (lat, lon, alt)
 
+    # there is a possibility of not having any conflicts
     if not positions:
         return
 
     collision_pairs = get_conflict_pairs(positions)     # list of tuples
     print(collision_pairs)
-    print(destinations)
-
-    has_reached_goal(None, None, None)
+    return
 
 
 def reset():
