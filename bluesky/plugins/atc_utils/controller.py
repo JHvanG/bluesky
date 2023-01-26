@@ -1,9 +1,11 @@
 import numpy as np
 import tensorflow as tf
-from bluesky.plugins.atc_utils.replay_buffer import ReplayBuffer
-from bluesky.plugins.atc_utils.state import State
 from tensorflow import keras
-from keras import layers
+from keras import Sequential
+from keras.layers import Dense
+
+from bluesky.plugins.atc_utils.state import State
+from bluesky.plugins.atc_utils.replay_buffer import ReplayBuffer
 
 
 class Controller(object):
@@ -17,9 +19,10 @@ class Controller(object):
         """
         # Config parameters
         self.replay_buffer = ReplayBuffer()
-        self.model = self._create_model()
         self.encoding = {"HDG_L": 0, "HDG_R": 1, "DIR": 2, "LNAV": 3}
         self.num_actions = len(self.encoding)
+        self.model = self._create_model()
+        self.target_model = self._create_model()
 
     def decode_actions(self, ohe_action: list[int]) -> (bool, str, str):
         """
@@ -101,16 +104,32 @@ class Controller(object):
         :return: The complete model
         """
 
-        return
+        q_net = Sequential()
+        q_net.add(Dense(64, input_dim=4, activation='relu', kernel_initializer='he_uniform'))
+        q_net.add(Dense(32, activation='relu', kernel_initializer='he_uniform'))
+        q_net.add(Dense(2, activation='linear', kernel_initializer='he_uniform'))
+        q_net.compile(optimizer=tf.optimizers.Adam(learning_rate=0.001), loss='mse')
+        return q_net
 
     def train(self, batch):
         """
-        Function responsible for training the network.
+        Function responsible for training the network. WORK ON THIS!!!!!!
 
         :param batch: a batch of experiences
         :return: loss of the network
         """
-        loss = 0  # We put a 0 loss as placeholder
+        state_batch, next_state_batch, action_batch, reward_batch, done_batch = batch
+        current_q = self.model(state_batch).numpy()
+        target_q = np.copy(current_q)
+        next_q = self.target_model(next_state_batch).numpy()
+        max_next_q = np.amax(next_q, axis=1)
+        for i in range(state_batch.shape[0]):
+            target_q_val = reward_batch[i]
+            if not done_batch[i]:
+                target_q_val += 0.95 * max_next_q[i]
+            target_q[i][action_batch[i]] = target_q_val
+        training_history = self.model.fit(x=state_batch, y=target_q, verbose=0)
+        loss = training_history.history['loss']
         return loss
 
 
