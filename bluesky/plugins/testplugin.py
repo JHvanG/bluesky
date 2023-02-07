@@ -21,6 +21,10 @@ SEP_MIN_HOR = 3.0               # 3 nm is min sep
 SEP_MIN_VER = 1000              # 1000 ft is min sep
 HDG_CHANGE = 15.0               # HDG change instruction deviates 15 degrees from original
 
+EPISODE_COUNTER = 0             # counter to keep track of how many episodes have passed
+EPISODE_LIMIT = 140           # 14400 updates equates to approximately 2 hours of simulation time
+TIMER = 0                       # counter to keep track of how many update calls were made this episode
+
 PREVIOUS_ACTIONS = []           # buffer for previous actions with the given state and the aircraft pair
 
 CONTROLLER = Controller()       # atc agent based on a DQN
@@ -43,7 +47,9 @@ def init_plugin():
         # Update interval in seconds. By default, your plugin's update function(s)
         # are called every timestep of the simulation. If your plugin needs less
         # frequent updates provide an update interval.
-        'update_interval': 0.0,
+        # Delta T = 0.05s in the simulation
+        # NOTE: CHANGED THIS FROM 0.0
+        'update_interval': 5.0,
 
         # The update function is called after traffic is updated. Use this if you
         # want to do things as a result of what happens in traffic. If you need to
@@ -93,7 +99,11 @@ def get_next_two_waypoints(idx: int) -> (str, str):
     :param idx: index of the aircraft
     :return:
     """
-    cur = traf.ap.route[idx].wpname[0]
+    if not traf.ap.route[idx].wpname:
+        # TODO: remove this temporary fix when up and running!
+        return "EH007", "EH007"
+    else:
+        cur = traf.ap.route[idx].wpname[0]
 
     if len(traf.ap.route[idx].wpname) > 1:
         nxt = traf.ap.route[idx].wpname[1]
@@ -111,11 +121,17 @@ def get_current_state(ac1: str, ac2: str) -> State:
     :param ac2: string of aircraft 2's ID
     :return: current state given the two aircraft
     """
-    idx1 = traf.acid.index(ac1)
-    idx2 = traf.acid.index(ac2)
+    idx1 = traf.id.index(ac1)
+    idx2 = traf.id.index(ac2)
 
-    cur1, nxt1 = get_next_two_waypoints(idx1)
-    cur2, nxt2 = get_next_two_waypoints(idx2)
+    cur1_id, nxt1_id = get_next_two_waypoints(idx1)
+    cur2_id, nxt2_id = get_next_two_waypoints(idx2)
+
+    # convert waypoints to their indices in the navigation database
+    cur1 = navdb.wpid.index(cur1_id)
+    nxt1 = navdb.wpid.index(nxt1_id)
+    cur2 = navdb.wpid.index(cur2_id)
+    nxt2 = navdb.wpid.index(nxt2_id)
 
     current_state = State(
         traf.lat[idx1], traf.lon[idx1], traf.alt[idx1], traf.tas[idx1], cur1, nxt1,
@@ -157,8 +173,8 @@ def is_within_alert_distance(ac1: str, ac2: str) -> bool:
     :param ac2: id of aircraft 2
     :return: boolean for a loss of separation
     """
-    idx1 = traf.acid.index(ac1)
-    idx2 = traf.acid.index(ac2)
+    idx1 = traf.id.index(ac1)
+    idx2 = traf.id.index(ac2)
 
     lat1 = traf.lat[idx1]
     lat2 = traf.lat[idx2]
@@ -178,8 +194,8 @@ def is_loss_of_separation(ac1: str, ac2: str) -> bool:
     :param ac2: id of aircraft 2
     :return: boolean for a loss of separation
     """
-    idx1 = traf.acid.index(ac1)
-    idx2 = traf.acid.index(ac2)
+    idx1 = traf.id.index(ac1)
+    idx2 = traf.id.index(ac2)
 
     lat1 = traf.lat[idx1]
     lat2 = traf.lat[idx2]
@@ -199,11 +215,16 @@ def has_reached_goal(ac: str) -> bool:
     :return: boolean of reached goal status
     """
 
-    idx = traf.acid.index(ac)
+    idx = traf.id.index(ac)
 
     lat = traf.lat[idx]
     lon = traf.lon[idx]
     dest = traf.ap.dest[idx]
+
+    if dest == "":
+        print(f"{ac} has no destination defined")
+        return False
+
     # destination = "EH007"
     wplat = navdb.wplat[navdb.wpid.index(dest)]
     wplon = navdb.wplon[navdb.wpid.index(dest)]
@@ -297,7 +318,7 @@ def change_heading(ac: str, right: bool):
     else:
         hdg_change = -1 * HDG_CHANGE
 
-    current_hdg = traf.hdg[traf.acid.index(ac)]
+    current_hdg = traf.hdg[traf.id.index(ac)]
 
     hdg = (current_hdg + hdg_change) % 360
 
@@ -341,6 +362,12 @@ def update():
     # DONE:     reward = self.get_reward(positions, destinations, ac1, ac2) --> reward is not available before action
     # DONE:     then self.controller.store(previous_experience[idx], state) --> store this in a handy manner
 
+    global TIMER
+    TIMER = TIMER + 1
+
+    if EPISODE_COUNTER == EPISODE_LIMIT or TIMER == EPISODE_LIMIT:
+        reset()
+
     # first check if an instruction was given at t - 1, then the experience buffer needs to be updated
     if PREVIOUS_ACTIONS:
         while PREVIOUS_ACTIONS:
@@ -351,13 +378,16 @@ def update():
             # the reward is based on the current state, so can be taken directly from info of the simulator
             reward = get_reward(ac1, ac2)
 
-            CONTROLLER.store(prev_state, action1, action2, reward, current_state)
+            CONTROLLER.store_experiences(prev_state, action1, action2, reward, current_state)
 
     # DONE: check for new pairs
     # DONE:     then for all pairs:
     # DONE:         actions = self.controller.act(state)
     # DONE:         do actions
     # DONE:         previous_experience.append((state, actions, aircraft))
+
+    # TODO: add check when to reset --> after x timesteps
+    # TODO: add reset call after condition
 
     positions = {}
 
@@ -382,8 +412,8 @@ def update():
 
         action1, action2 = CONTROLLER.act(current_state)
 
-        handle_instruction(ac1, action1, current_state.get_next_state(1))
-        handle_instruction(ac2, action2, current_state.get_next_state(2))
+        handle_instruction(ac1, action1, current_state.get_next_waypoint(1))
+        handle_instruction(ac2, action2, current_state.get_next_waypoint(2))
 
         PREVIOUS_ACTIONS.append((current_state, action1, action2, ac1, ac2))
 
@@ -391,7 +421,22 @@ def update():
 
 
 def reset():
-    pass
+    """
+    Reset after episode has finished.
+    """
+    global EPISODE_COUNTER
+    global TIMER
+    EPISODE_COUNTER += 1
+    TIMER = 0
+
+    # TODO: if condition met call train function after n restarts
+    loss = CONTROLLER.train(CONTROLLER.load_experiences())
+    CONTROLLER.save_weights()
+
+    # reload the scenario --> does this work with keeping track of buffer? THIS WORKS
+    stack.stack('IC testplugin.scn')
+
+    return
 
 ### Other functions of your plugin
 def testplugin(argument):
@@ -401,24 +446,3 @@ def testplugin(argument):
      :param argument:
     """
     pass
-    # if '/' not in rwyname:
-    #     return False, 'Argument is not a runway ' + rwyname
-    # apt, rwy = rwyname.split('/RW')
-    # rwy = rwy.lstrip('Y')
-    # apt_thresholds = navdb.rwythresholds.get(apt)
-    # if not apt_thresholds:
-    #     return False, 'Argument is not a runway (airport not found) ' + apt
-    # rwy_threshold = apt_thresholds.get(rwy)
-    # if not rwy_threshold:
-    #     return False, 'Argument is not a runway (runway not found) ' + rwy
-    # # Extract runway threshold lat/lon, and runway heading
-    # lat, lon, hdg = rwy_threshold
-    #
-    # # The ILS gate is defined as a triangular area pointed away from the runway
-    # # First calculate the two far corners in cartesian coordinates
-    # cone_length = 50 # nautical miles
-    # cone_angle  = 20.0 # degrees
-    # lat1, lon1 = geo.qdrpos(lat, lon, hdg - 180.0 + cone_angle, cone_length)
-    # lat2, lon2 = geo.qdrpos(lat, lon, hdg - 180.0 - cone_angle, cone_length)
-    # coordinates = np.array([lat, lon, lat1, lon1, lat2, lon2])
-    # areafilter.defineArea('ILS' + rwyname, 'POLYALT', coordinates, top=4000*ft)

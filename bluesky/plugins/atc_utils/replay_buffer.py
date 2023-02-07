@@ -1,6 +1,7 @@
 import random
 import numpy as np
 from collections import deque
+from bluesky.plugins.atc_utils.state import State
 
 
 class ReplayBuffer(object):
@@ -10,7 +11,7 @@ class ReplayBuffer(object):
     def __init__(self):
         self.experience_buffer = deque(maxlen=1000000)
 
-    def store_experience(self, state, action, reward, next_state):
+    def store_experience(self, state: State, action: list, reward: int, next_state: State):
         """
         Function for storing the experiences.
 
@@ -20,7 +21,7 @@ class ReplayBuffer(object):
         :param next_state: next state that was reached from the performed action
         """
 
-        self.experience_buffer.append((state, action, reward, next_state))
+        self.experience_buffer.append((state.get_state_as_list(), action, reward, next_state.get_state_as_list()))
 
         return
 

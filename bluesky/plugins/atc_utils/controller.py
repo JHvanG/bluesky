@@ -1,8 +1,9 @@
+import os
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 from keras import Sequential
-from keras.layers import Dense
+from keras.layers import Dense, Input
 
 from bluesky.plugins.atc_utils.state import State
 from bluesky.plugins.atc_utils.replay_buffer import ReplayBuffer
@@ -66,7 +67,40 @@ class Controller(object):
 
         return act1_enc + act2_enc
 
-    def store(self, state: State, act1: str, act2: str, reward: int, next_state: State):
+    def convert_to_binary(self, model_output: list[float]) -> list[int]:
+        """
+        This function converts the model probabilistic model output to binary labels.
+
+        :param model_output: original model output
+        :return: binary list with a one at two indices indicating what action ought to be taken by the aircraft
+        """
+        print(model_output)
+        first = model_output[:len(self.encoding)]
+        second = model_output[len(self.encoding):len(self.encoding) * 2]
+        print(first, second)
+
+        max_first = max(first)
+        max_second = max(second)
+        first_max_encountered = False
+        second_max_encountered = False
+
+        for i in range(len(first)):
+            if not first_max_encountered and first[i] == max_first:
+                first[i] = 1
+                first_max_encountered = True
+            else:
+                first[i] = 0
+
+            if not second_max_encountered and second[i] == max_second:
+                second[i] = 1
+                second_max_encountered = True
+            else:
+                second[i] = 0
+
+        binary = first + second
+        return binary
+
+    def store_experiences(self, state: State, act1: str, act2: str, reward: int, next_state: State):
         """
         This function saves the experience from the current action and its result.
 
@@ -80,21 +114,43 @@ class Controller(object):
         self.replay_buffer.store_experience(state, action, reward, next_state)
         pass
 
-    def act(self, state) -> (str, str):
+    def load_experiences(self):
+        """
+        Function that allows the plugin to load the replay buffer.
+
+        :return: batch of the replay buffer
+        """
+        return self.replay_buffer.sample_batch()
+
+    def act(self, state: State) -> (str, str):
         """
         Returns actions for the given state.
 
         :param state: current state of the two aircraft in conflict.
         :return: two strings containing the actions to be taken.
         """
-
-        model_output = self.model.predict(state)
-        success, act1, act2 = self.decode_actions(model_output)
+        state = np.asarray(state.get_state_as_list())
+        input_state = tf.convert_to_tensor(state[None, :])
+        print(input_state)
+        action_q = self.model(input_state)
+        model_output = action_q.numpy().tolist()[0]
+        action = self.convert_to_binary(model_output)
+        print(action)
+        success, act1, act2 = self.decode_actions(action)
 
         if not success:
             raise Exception("Model failed to produce legitimate output")
 
         return act1, act2
+
+    def save_weights(self):
+        dir = os.getcwd()
+        path = os.path.join(dir, "results/model_weights/")
+
+        if not os.path.exists(path):
+            os.makedirs(path)
+
+        self.model.save_weights(path + "training_weights.h5")
 
     def _create_model(self) -> keras.Model:
         """
@@ -105,10 +161,11 @@ class Controller(object):
         """
 
         q_net = Sequential()
-        q_net.add(Dense(64, input_dim=4, activation='relu', kernel_initializer='he_uniform'))
+        q_net.add(Dense(64, input_dim=12, activation='relu', kernel_initializer='he_uniform'))
         q_net.add(Dense(32, activation='relu', kernel_initializer='he_uniform'))
-        q_net.add(Dense(2, activation='linear', kernel_initializer='he_uniform'))
-        q_net.compile(optimizer=tf.optimizers.Adam(learning_rate=0.001), loss='mse')
+        q_net.add(Dense(8, activation='sigmoid', kernel_initializer='he_uniform'))
+        q_net.compile(loss="binary_crossentropy", optimizer=tf.optimizers.Adam(learning_rate=0.001))    # loss='mse')
+        print(q_net.summary())
         return q_net
 
     def train(self, batch):
@@ -118,16 +175,21 @@ class Controller(object):
         :param batch: a batch of experiences
         :return: loss of the network
         """
-        state_batch, next_state_batch, action_batch, reward_batch, done_batch = batch
+        state_batch, action_batch, reward_batch, next_state_batch = batch
         current_q = self.model(state_batch).numpy()
         target_q = np.copy(current_q)
         next_q = self.target_model(next_state_batch).numpy()
         max_next_q = np.amax(next_q, axis=1)
+
         for i in range(state_batch.shape[0]):
             target_q_val = reward_batch[i]
-            if not done_batch[i]:
-                target_q_val += 0.95 * max_next_q[i]
+
+            # if not done_batch[i]:
+            # TODO: alter this to fit needs
+            target_q_val += 0.95 * max_next_q[i]
+
             target_q[i][action_batch[i]] = target_q_val
+
         training_history = self.model.fit(x=state_batch, y=target_q, verbose=0)
         loss = training_history.history['loss']
         return loss
