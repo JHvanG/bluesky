@@ -102,7 +102,7 @@ def loadnavdata_txt():
 
     #----------  Read  fix.dat file ----------
     with open(bs.resource(settings.navdata_path) / 'fix.dat', 'rb') as f:
-        print("Reading fix.dat")
+        print("Reading LALALALALALLAALA fix.dat")
         for line in f:
             line = line.decode(encoding="ascii", errors="ignore").strip()
 

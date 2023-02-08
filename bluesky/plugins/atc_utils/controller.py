@@ -144,13 +144,26 @@ class Controller(object):
         return act1, act2
 
     def save_weights(self):
-        dir = os.getcwd()
-        path = os.path.join(dir, "results/model_weights/")
+        """
+        This function simply saves the current model to an h5 file.
+        """
+
+        workdir = os.getcwd()
+        path = os.path.join(workdir, "results/model_weights/")
 
         if not os.path.exists(path):
             os.makedirs(path)
 
         self.model.save_weights(path + "training_weights.h5")
+        return
+
+    def load_weights(self):
+        """
+        This function loads the model weights from a file. If the file is not present, it will initialize the model
+        randomly.
+        """
+        workdir = os.getcwd()
+        self.model.load_weights(workdir, "results/model_weights/training_weights.h5")
 
     def _create_model(self) -> keras.Model:
         """

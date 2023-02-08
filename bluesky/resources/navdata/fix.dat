@@ -1,5 +1,5 @@
 I
-600 Version - data cycle 2013.10, build 20131334, metadata FixXP700.  Copyright © 2013, Robin A. Peel (robin@x-plane.com).   This data is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.  This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.  You should have received a copy of the GNU General Public License along with this program ("AptNavGNULicence.txt"); if not, write to the Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
+600 Version - data cycle 2013.10, build 20131334, metadata FixXP700.  Copyright ï¿½ 2013, Robin A. Peel (robin@x-plane.com).   This data is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.  This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.  You should have received a copy of the GNU General Public License along with this program ("AptNavGNULicence.txt"); if not, write to the Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
  00.000000  000.000000 0000E
  00.000000 -010.000000 0010N
@@ -32826,6 +32826,12 @@ I
  51.368611  005.463333 EH576
  51.395000  005.507222 EH577
  51.460817  005.387944 EH578
+ #### \ADDED WAYPOINTS/ ####
+ 52.688164  004.849139 EH601
+ 52.688264  004.680078 EH602
+ 52.688125  004.513372 EH603
+ 52.066372  004.116042 EH605
+ #### /ADDED WAYPOINTS\ ####
  52.422500  004.387777 EH606
  52.583888  004.646944 EH607
  52.539444  004.728055 EH608
