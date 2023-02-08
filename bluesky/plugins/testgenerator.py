@@ -14,6 +14,7 @@ from bluesky.tools import geo, areafilter
 ROUTES = "routes/"
 DEFINITION = "route_definition.json"
 ACID = 0
+PREVIOUS_ARRIVAL = None
 
 
 ### Initialization function of your plugin. Do not change the name of this
@@ -75,6 +76,8 @@ def select_approach() -> (str, str):
     :return: strings of the approach transition and standard arrival files
     """
 
+    global PREVIOUS_ARRIVAL
+
     workdir = os.getcwd()
     file = os.path.join(os.path.join(workdir, ROUTES), DEFINITION)
     with open(file, 'r') as f:
@@ -82,7 +85,10 @@ def select_approach() -> (str, str):
 
     rwy = random.choice(list(data.keys()))
     transition = random.choice(list(data[rwy].keys()))
-    arrival = random.choice(data[rwy][transition])
+    all_arrivals = data[rwy][transition]
+    arrival = random.choice([arr for arr in all_arrivals if arr != PREVIOUS_ARRIVAL])
+
+    PREVIOUS_ARRIVAL = arrival
 
     rwy_transition = rwy + "-" + transition
     standard_arrival = transition + "-" + arrival
