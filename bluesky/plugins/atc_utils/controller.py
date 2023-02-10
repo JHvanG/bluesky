@@ -174,7 +174,7 @@ class Controller(object):
         """
 
         q_net = Sequential()
-        q_net.add(Dense(64, input_dim=12, activation='relu', kernel_initializer='he_uniform'))
+        q_net.add(Dense(64, input_dim=14, activation='relu', kernel_initializer='he_uniform'))
         q_net.add(Dense(32, activation='relu', kernel_initializer='he_uniform'))
         q_net.add(Dense(8, activation='sigmoid', kernel_initializer='he_uniform'))
         q_net.compile(loss="binary_crossentropy", optimizer=tf.optimizers.Adam(learning_rate=0.001))    # loss='mse')

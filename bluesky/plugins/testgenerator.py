@@ -5,7 +5,7 @@ import json
 import random
 import numpy as np
 # Import the global bluesky objects. Uncomment the ones you need
-from bluesky import stack  #, settings, navdb, traf, sim, scr, tools
+from bluesky import stack, traf  #, settings, navdb, sim, scr, tools
 from bluesky import navdb
 from bluesky.tools.aero import ft
 from bluesky.tools import geo, areafilter
@@ -14,6 +14,7 @@ from bluesky.tools import geo, areafilter
 ROUTES = "routes/"
 DEFINITION = "route_definition.json"
 ACID = 0
+MAX_AC = 20
 PREVIOUS_ARRIVAL = None
 
 
@@ -158,15 +159,17 @@ def spawn_aircraft(flightpath: dict[str: int]):
     first = True
     for wpt, alt in flightpath.items():
         if first:
-            stack.stack("CRE KL{}, A320, {}, 0, {}, 220".format(ACID, wpt, alt))
+            stack.stack("CRE AC{}, A320, {}, 0, {}, 220".format(ACID, wpt, alt))
             first = False
         else:
             if not alt:
-                stack.stack("ADDWPT KL{} {}".format(ACID, wpt))
+                stack.stack("ADDWPT AC{} {}".format(ACID, wpt))
             else:
-                stack.stack("ADDWPT KL{} {} {}".format(ACID, wpt, alt))
+                stack.stack("ADDWPT AC{} {} {}".format(ACID, wpt, alt))
 
-    stack.stack("VNAV KL{} ON".format(ACID))
+    # second to last waypoint is at 2000 ft and is before the threshold
+    stack.stack("DEST AC{} {}".format(ACID, list(flightpath.keys())[-2]))
+    stack.stack("VNAV AC{} ON".format(ACID))
 
     ACID += 1
 
@@ -178,17 +181,27 @@ def update():
     # TODO: randomly select approach
     # TODO: fix interval
 
-    trans, star = select_approach()
-    print(trans, star)
-    flightpath = read_approach_procedure(trans, star)
-    # print(flightpath)
-    spawn_aircraft(flightpath)
+    n_ac = len(traf.id)
+
+    if n_ac < MAX_AC:
+
+        trans, star = select_approach()
+        print(trans, star)
+        flightpath = read_approach_procedure(trans, star)
+        spawn_aircraft(flightpath)
+
     return
 
 
 def reset():
-    # TODO: reset acid counter
-    pass
+    print("resetting spawn plugin")
+    global ACID
+    global PREVIOUS_ARRIVAL
+
+    ACID = 0
+    PREVIOUS_ARRIVAL = None
+
+    return
 
 
 ### Other functions of your plugin

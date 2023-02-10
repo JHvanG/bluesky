@@ -72,7 +72,9 @@ def update():
 
 
 def reset():
-    pass
+    global ELEMENT_COUNTER
+    ELEMENT_COUNTER = 0
+    return
 
 
 def load_all_approaches() -> dict[str: list[str]]:

@@ -22,10 +22,12 @@ SEP_MIN_VER = 1000              # 1000 ft is min sep
 HDG_CHANGE = 15.0               # HDG change instruction deviates 15 degrees from original
 
 EPISODE_COUNTER = 0             # counter to keep track of how many episodes have passed
-EPISODE_LIMIT = 140           # 14400 updates equates to approximately 2 hours of simulation time
+EPISODE_LIMIT = 256             # CHANGED 14400 updates equates to approximately 2 hours of simulation time
 TIMER = 0                       # counter to keep track of how many update calls were made this episode
+TIME_LIMIT = 14400              # 14400 updates equates to approximately 2 hours of simulation time
 
 PREVIOUS_ACTIONS = []           # buffer for previous actions with the given state and the aircraft pair
+INSTRUCTED_AIRCRAFT = []        # list of aircraft that deviated from their flightpath
 
 CONTROLLER = Controller()       # atc agent based on a DQN
 
@@ -113,32 +115,44 @@ def get_next_two_waypoints(idx: int) -> (str, str):
     return cur, nxt
 
 
+def load_state_data(ac: str) -> (float, float, int,
+                                                                                          int, int, int, int):
+    """
+    This function gathers all data from one single aircraft that are required for a state definition.
+
+    :param ac: string containing aircraft id
+    :return: tuple of all data for one aircraft's state
+    """
+    idx = traf.id.index(ac)
+
+    lat = traf.lat[idx]
+    lon = traf.lon[idx]
+    alt = traf.alt[idx]
+    tas = traf.tas[idx]
+    hdg = traf.hdg[idx]
+
+    cur_id, nxt_id = get_next_two_waypoints(idx)
+    cur = navdb.wpid.index(cur_id)
+    nxt = navdb.wpid.index(nxt_id)
+
+    return lat, lon, alt, tas, hdg, cur, nxt
+
+
 def get_current_state(ac1: str, ac2: str) -> State:
     """
     This function returns all information required to build a state.
 
     :param ac1: string of aircraft 1's ID
     :param ac2: string of aircraft 2's ID
+    :param prev_state: State object of the previous state
     :return: current state given the two aircraft
     """
-    idx1 = traf.id.index(ac1)
-    idx2 = traf.id.index(ac2)
 
-    cur1_id, nxt1_id = get_next_two_waypoints(idx1)
-    cur2_id, nxt2_id = get_next_two_waypoints(idx2)
+    lat1, lon1, alt1, tas1, hdg1, cur1, nxt1 = load_state_data(ac1)
+    lat2, lon2, alt2, tas2, hdg2, cur2, nxt2 = load_state_data(ac2)
 
-    # convert waypoints to their indices in the navigation database
-    cur1 = navdb.wpid.index(cur1_id)
-    nxt1 = navdb.wpid.index(nxt1_id)
-    cur2 = navdb.wpid.index(cur2_id)
-    nxt2 = navdb.wpid.index(nxt2_id)
-
-    current_state = State(
-        traf.lat[idx1], traf.lon[idx1], traf.alt[idx1], traf.tas[idx1], cur1, nxt1,
-        traf.lat[idx2], traf.lon[idx2], traf.alt[idx2], traf.tas[idx2], cur2, nxt2
-    )
-
-    return current_state
+    return State(lat1, lon1, alt1, tas1, hdg1, cur1, nxt1,
+                 lat2, lon2, alt2, tas2, hdg2, cur2, nxt2)
 
 
 def within_stated_area(lat1: float, lat2: float, lon1: float, lon2: float,
@@ -298,11 +312,14 @@ def get_conflict_pairs(position_list: dict) -> list[tuple[str, str]]:
 
 def engage_lnav(ac: str):
     stack.stack(f"LNAV {ac} ON")
+    stack.stack(f"VNAV {ac} ON")
     return
 
 
 def direct_to_wpt(ac: str, wpt: str):
+    stack.stack(f"LNAV {ac} ON")
     stack.stack(f"DIRECT {ac} {wpt}")
+    stack.stack(f"VNAV {ac} ON")
     return
 
 
@@ -328,20 +345,40 @@ def change_heading(ac: str, right: bool):
 
 def handle_instruction(ac: str, action: str, wpt: str = None):
     """
-    This function checks what instruction was given and calls the appropriate functions to handle these instrucitons.
+    This function checks what instruction was given and calls the appropriate functions to handle these instructions.
 
     :param ac: aircraft id of aircraft that was given an instruction
     :param action: action that needs to be taken
     :param wpt: possible waypoint if a DIR instruction is given
     """
+
     if action == "HDG_L":
         change_heading(ac, False)
+        INSTRUCTED_AIRCRAFT.append(ac)
     elif action == "HDG_R":
         change_heading(ac, True)
+        INSTRUCTED_AIRCRAFT.append(ac)
     elif action == "DIR":
         direct_to_wpt(ac, wpt)
     elif action == "LNAV":
         engage_lnav(ac)
+
+
+def resume_navigation(collision_pairs):
+    """
+    This function checks whether aircraft that received a heading change are allowed to resume their own navigation.
+    """
+
+    global INSTRUCTED_AIRCRAFT
+
+    for ac in INSTRUCTED_AIRCRAFT:
+        if not [pair for pair in collision_pairs if ac in pair] and ac in traf.id:
+            print("{} is resuming own navigation!".format(ac))
+            engage_lnav(ac)
+
+    INSTRUCTED_AIRCRAFT = []
+
+    return
 
 
 def update():
@@ -352,7 +389,7 @@ def update():
     # ------------------------------------------------------------------------------------------------------------------
     # DONE: determine possible conflicts --> add to set of pairs, ordered by proximity within pairs
 
-    # TODO: get set of allowed actions
+    # TODO: get set of allowed actions (are there actions that are perhaps illegal?)
     # TODO: determine best action
     # TODO: handle aircraft that were given previous instructions (desire to go back to LNAV)
     # TODO: reward function needs to be made more complex
@@ -365,20 +402,24 @@ def update():
     global TIMER
     TIMER = TIMER + 1
 
-    if EPISODE_COUNTER == EPISODE_LIMIT or TIMER == EPISODE_LIMIT:
+    # TODO: check this logic
+    if EPISODE_COUNTER == EPISODE_LIMIT or TIMER == TIME_LIMIT:
         reset()
+        return
 
     # first check if an instruction was given at t - 1, then the experience buffer needs to be updated
     if PREVIOUS_ACTIONS:
         while PREVIOUS_ACTIONS:
             prev_state, action1, action2, ac1, ac2 = PREVIOUS_ACTIONS.pop()
 
-            current_state = get_current_state(ac1, ac2)
+            # TODO: what if ac despawned? --> currently we remove this case
+            if ac1 in traf.id and ac2 in traf.id:
+                current_state = get_current_state(ac1, ac2)
 
-            # the reward is based on the current state, so can be taken directly from info of the simulator
-            reward = get_reward(ac1, ac2)
+                # the reward is based on the current state, so can be taken directly from info of the simulator
+                reward = get_reward(ac1, ac2)
 
-            CONTROLLER.store_experiences(prev_state, action1, action2, reward, current_state)
+                CONTROLLER.store_experiences(prev_state, action1, action2, reward, current_state)
 
     # DONE: check for new pairs
     # DONE:     then for all pairs:
@@ -401,6 +442,7 @@ def update():
         return
 
     collision_pairs = get_conflict_pairs(positions)     # list of tuples
+    resume_navigation(collision_pairs)
 
     # there is a possibility of not having any conflicts
     if not collision_pairs:
@@ -412,8 +454,9 @@ def update():
 
         action1, action2 = CONTROLLER.act(current_state)
 
-        handle_instruction(ac1, action1, current_state.get_next_waypoint(1))
-        handle_instruction(ac2, action2, current_state.get_next_waypoint(2))
+        # waypoint in state is the index of its id in the navdb
+        handle_instruction(ac1, action1, navdb.wpid[current_state.get_next_waypoint(1)])
+        handle_instruction(ac2, action2, navdb.wpid[current_state.get_next_waypoint(2)])
 
         PREVIOUS_ACTIONS.append((current_state, action1, action2, ac1, ac2))
 
@@ -424,18 +467,30 @@ def reset():
     """
     Reset after episode has finished.
     """
+    print("resetting main plugin")
+    global INSTRUCTED_AIRCRAFT
+    global PREVIOUS_ACTIONS
     global EPISODE_COUNTER
     global TIMER
+
+    INSTRUCTED_AIRCRAFT = []
+    PREVIOUS_ACTIONS = []
     EPISODE_COUNTER += 1
     TIMER = 0
 
     # TODO: if condition met call train function after n restarts
     loss = CONTROLLER.train(CONTROLLER.load_experiences())
+    print("\n Episode {} finished".format(EPISODE_COUNTER))
+    print("loss: {}\n", format(loss))
     CONTROLLER.save_weights()
 
-    # reload the scenario --> does this work with keeping track of buffer? THIS WORKS
-    stack.stack('IC testplugin.scn')
+    if EPISODE_COUNTER == EPISODE_LIMIT:
+        stack.stack("STOP")
 
+    # stack.stack('IC testplugin.scn')
+    stack.stack("RESET")
+    stack.stack("TAXI ON")
+    stack.stack("FF")
     return
 
 ### Other functions of your plugin
