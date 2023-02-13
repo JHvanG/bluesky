@@ -242,6 +242,7 @@ def txt2lon(lontxt):
     # It should first be checked if lontxt is a regular float, to avoid removing
     # the 'e' in a scientific-notation number.
     try:
+        print(lontxt)
         lon = float(lontxt)
 
     # Leading E will trigger error ansd means simply East,just as  W = West = Negative

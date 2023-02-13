@@ -156,10 +156,24 @@ def spawn_aircraft(flightpath: dict[str: int]):
     """
     global ACID
 
+    # determine heading
+    wp1 = list(flightpath.keys())[0]
+    wp2 = list(flightpath.keys())[1]
+
+    idx1 = navdb.getwpidx(wp1)
+    idx2 = navdb.getwpidx(wp2)
+
+    lat1 = navdb.wplat[idx1]
+    lon1 = navdb.wplon[idx1]
+    lat2 = navdb.wplat[idx2]
+    lon2 = navdb.wplon[idx2]
+
+    hdg, _ = geo.qdrdist(lat1, lon1, lat2, lon2)
+
     first = True
     for wpt, alt in flightpath.items():
         if first:
-            stack.stack("CRE AC{}, A320, {}, 0, {}, 220".format(ACID, wpt, alt))
+            stack.stack("CRE AC{}, A320, {}, {}, {}, 220".format(ACID, wpt, hdg, alt))
             first = False
         else:
             if not alt:
@@ -178,7 +192,7 @@ def spawn_aircraft(flightpath: dict[str: int]):
 
 def update():
     # TODO: find possible starting points
-    # TODO: randomly select approach
+    # DONE: randomly select approach
     # TODO: fix interval
 
     n_ac = len(traf.id)
