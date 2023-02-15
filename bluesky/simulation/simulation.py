@@ -166,7 +166,10 @@ class Simulation:
         self.syst = -1.0
         self.simt = 0.0
         self.simdt = bs.settings.simdt
-        simtime.reset()
+
+        # NOTE: removal of this reset call reduces the reset to once --> might be a quickfix
+        # simtime.reset()
+
         self.utc = datetime.datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
         self.ffmode = False
         self.set_dtmult(1.0)

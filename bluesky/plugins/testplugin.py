@@ -1,33 +1,36 @@
 """ BlueSky plugin template. The text you put here will be visible
     in BlueSky as the description of your plugin. """
 
-import numpy as np
-from math import sqrt
+import os
+import csv
 
 # Import the global bluesky objects. Uncomment the ones you need
-from bluesky import stack, traf  #, settings, navdb, sim, scr, tools
-from bluesky import navdb
+from bluesky import stack, traf, navdb  #, settings, sim, scr, tools
 from bluesky.tools.aero import ft
 from bluesky.tools import geo, areafilter
 
 from bluesky.plugins.atc_utils.state import State
 from bluesky.plugins.atc_utils.controller import Controller
+from bluesky.plugins.atc_utils import prox_util as pu
 
-FT_NM_FACTOR = 0.000164578834   # ft * factor converts to nm
-M_FT_FACTOR = 3.280839895       # m * factor converts to feet
-SEP_REP_HOR = 3.5               # report within 3.5 nm
-SEP_REP_VER = 1500              # report within 1500 ft
-SEP_MIN_HOR = 3.0               # 3 nm is min sep
-SEP_MIN_VER = 1000              # 1000 ft is min sep
+
 HDG_CHANGE = 15.0               # HDG change instruction deviates 15 degrees from original
+TOTAL_REWARD = 0                # storage for total obtained reward this episode
 
 EPISODE_COUNTER = 0             # counter to keep track of how many episodes have passed
-EPISODE_LIMIT = 256             # CHANGED 14400 updates equates to approximately 2 hours of simulation time
+EPISODE_LENGTH = 256            # THIS IS PROBABLY IRRELEVANT...
 TIMER = 0                       # counter to keep track of how many update calls were made this episode
-TIME_LIMIT = 14400              # 14400 updates equates to approximately 2 hours of simulation time
+TIME_LIMIT = 360                # 1440 updates equates to approximately 2 hours of simulation time
 
 PREVIOUS_ACTIONS = []           # buffer for previous actions with the given state and the aircraft pair
 INSTRUCTED_AIRCRAFT = []        # list of aircraft that deviated from their flightpath
+
+N_CONFLICTS = 0                 # counter for the number of conflicts that have been encountered
+N_LoS = 0                       # counter for the number of separation losses
+N_LEFT = 0                      # counter for the number of times action LEFT is selected
+N_RIGHT = 0                     # counter for the number of times action RIGHT is selected
+N_DIR = 0                       # counter for the number of times action DIR is selected
+N_LNAV = 0                      # counter for the number of times action LNAV is selected
 
 CONTROLLER = Controller()       # atc agent based on a DQN
 
@@ -79,19 +82,15 @@ def init_plugin():
             'First test plugin to help with plugin development.']
     }
 
+    # TODO: remove training results (or rename to other name or sth)
+    # TODO: allow for running by loading best weights
+
     # init_plugin() should always return these two dicts.
     return config, stackfunctions
 
 
 ### Periodic update functions that are called by the simulation. You can replace
 ### this by anything, so long as you communicate this in init_plugin
-
-def m_to_ft(alt: int) -> int:
-    return int(alt * M_FT_FACTOR)
-
-
-def ft_to_nm(alt: int) -> float:
-    return alt * FT_NM_FACTOR
 
 
 def get_next_two_waypoints(idx: int) -> (str, str):
@@ -115,8 +114,7 @@ def get_next_two_waypoints(idx: int) -> (str, str):
     return cur, nxt
 
 
-def load_state_data(ac: str) -> (float, float, int,
-                                                                                          int, int, int, int):
+def load_state_data(ac: str) -> (float, float, int, int, int, int, int):
     """
     This function gathers all data from one single aircraft that are required for a state definition.
 
@@ -155,72 +153,6 @@ def get_current_state(ac1: str, ac2: str) -> State:
                  lat2, lon2, alt2, tas2, hdg2, cur2, nxt2)
 
 
-def within_stated_area(lat1: float, lat2: float, lon1: float, lon2: float,
-                       alt1: int, alt2: int, h_lim: float, v_lim: int) -> bool:
-    """
-    This function returns true when two aircraft are within the stated area.
-
-    :param lat1: ac1 latitude
-    :param lat2: ac2 latitude
-    :param lon1: ac1 longitude
-    :param lon2: ac2 longitude
-    :param alt1: ac1 altitude
-    :param alt2: ac2 altitude
-    :param h_lim: horizontal limit
-    :param v_lim: vertical limit
-    :return: boolean of within limits
-    """
-    _, dist_h = geo.qdrdist(lat1, lon1, lat2, lon2)  # bearing, distance (nm)
-    dist_v = abs(alt1 - alt2)
-
-    if dist_h <= h_lim and dist_v <= v_lim:
-        return True
-    else:
-        return False
-
-
-def is_within_alert_distance(ac1: str, ac2: str) -> bool:
-    """
-    This function returns a boolean indicating whether two aircraft are within the notification area.
-
-    :param ac1: id of aircraft 1
-    :param ac2: id of aircraft 2
-    :return: boolean for a loss of separation
-    """
-    idx1 = traf.id.index(ac1)
-    idx2 = traf.id.index(ac2)
-
-    lat1 = traf.lat[idx1]
-    lat2 = traf.lat[idx2]
-    lon1 = traf.lon[idx1]
-    lon2 = traf.lon[idx2]
-    alt1 = traf.alt[idx1]
-    alt2 = traf.alt[idx2]
-
-    return within_stated_area(lat1, lat2, lon1, lon2, alt1, alt2, SEP_REP_HOR, SEP_REP_VER)
-
-
-def is_loss_of_separation(ac1: str, ac2: str) -> bool:
-    """
-    This function returns a boolean indicating whether a loss of separation has occurred.
-
-    :param ac1: id of aircraft 1
-    :param ac2: id of aircraft 2
-    :return: boolean for a loss of separation
-    """
-    idx1 = traf.id.index(ac1)
-    idx2 = traf.id.index(ac2)
-
-    lat1 = traf.lat[idx1]
-    lat2 = traf.lat[idx2]
-    lon1 = traf.lon[idx1]
-    lon2 = traf.lon[idx2]
-    alt1 = traf.alt[idx1]
-    alt2 = traf.alt[idx2]
-
-    return within_stated_area(lat1, lat2, lon1, lon2, alt1, alt2, SEP_MIN_HOR, SEP_MIN_VER)
-
-
 def has_reached_goal(ac: str) -> bool:
     """
     This function determines when an aircraft has reached its goal position (the last waypoint in its route).
@@ -249,18 +181,6 @@ def has_reached_goal(ac: str) -> bool:
         return False
 
 
-def direct_distance(hor: float, ver: int) -> float:
-    """
-    Using the Pythagorean Theorem, the straight-line distance is computed based on the horizontal and vertical distance.
-
-    :param hor: horizontal distance [nm]
-    :param ver: vertical distance [ft]
-    :return: distance [nm]
-    """
-
-    return sqrt(hor ** 2 + ft_to_nm(ver) ** 2)
-
-
 def get_reward(ac1: str, ac2: str) -> int:
     """
     This function returns the reward obtained from the action that was taken.
@@ -269,45 +189,17 @@ def get_reward(ac1: str, ac2: str) -> int:
     :param ac2: second aircraft in the conflict
     :return: integer reward
     """
+
+    global N_LoS
+
     # TODO: make more complex
-    if is_loss_of_separation(ac1, ac2):
+    if pu.is_loss_of_separation(ac1, ac2):
+        N_LoS += 1
         return -1
     elif has_reached_goal(ac1) or has_reached_goal(ac2):
         return 1
     else:
         return 0
-
-
-def get_conflict_pairs(position_list: dict) -> list[tuple[str, str]]:
-    """
-    This functions returns a list of pairs that are nearing minimum separation.
-
-    :param position_list: Dictionary containing all present aircraft, along with their positions
-    :return: list of aircraft ID pairs (strings)
-    """
-
-    conflict_list = []
-    conflict_dist = []
-    all_pairs = [(a, b) for idx, a in enumerate(list(position_list.keys())) for b in list(position_list.keys())[idx+1:]]
-
-    for a, b in all_pairs:
-        lat_a, lon_a, alt_a = position_list[a]
-        lat_b, lon_b, alt_b = position_list[b]
-
-        _, dist_h = geo.qdrdist(lat_a, lon_a, lat_b, lon_b)   # bearing, distance (nm)
-        dist_v = abs(alt_a - alt_b)
-
-        # distance checks out, bearing is weird
-        # print(f"Distance between {a} and {b} is {dist_h}nm horizontally and {dist_v}ft vertically.")
-
-        if dist_h < SEP_REP_HOR and dist_v < SEP_REP_VER:
-            print(f"{a} and {b} are within the notification range of each other")
-            conflict_list.append((str(a), str(b)))
-            conflict_dist.append(direct_distance(dist_h, dist_v))
-
-    sorted_conflicts = [x for _, x in sorted(zip(conflict_dist, conflict_list))]
-
-    return sorted_conflicts
 
 
 def engage_lnav(ac: str):
@@ -352,15 +244,24 @@ def handle_instruction(ac: str, action: str, wpt: str = None):
     :param wpt: possible waypoint if a DIR instruction is given
     """
 
+    global N_LEFT
+    global N_RIGHT
+    global N_DIR
+    global N_LNAV
+
     if action == "HDG_L":
+        N_LEFT += 1
         change_heading(ac, False)
         INSTRUCTED_AIRCRAFT.append(ac)
     elif action == "HDG_R":
+        N_RIGHT += 1
         change_heading(ac, True)
         INSTRUCTED_AIRCRAFT.append(ac)
     elif action == "DIR":
+        N_DIR += 1
         direct_to_wpt(ac, wpt)
     elif action == "LNAV":
+        N_LNAV += 1
         engage_lnav(ac)
 
 
@@ -377,6 +278,46 @@ def resume_navigation(collision_pairs):
             engage_lnav(ac)
 
     INSTRUCTED_AIRCRAFT = []
+
+    return
+
+
+def write_episode_info(loss: float, avg_reward: float):
+    """
+    This function simply keeps track of what occured during every episode, saving the actions, loss, conflicts and LoS.
+
+    :param loss: loss from training the network
+    :param avg_reward: average reward during this episode
+    """
+
+    workdir = os.getcwd()
+    path = os.path.join(workdir, "results/training_results/")
+    file = path + "training_results.csv"
+
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+    data = {"episode":          EPISODE_COUNTER,
+            "loss":             loss,
+            "average reward":   avg_reward,
+            "conflicts":        N_CONFLICTS,
+            "LoS":              N_LoS,
+            "action LEFT":      N_LEFT,
+            "action RIGHT":     N_RIGHT,
+            "action DIRECT":    N_DIR,
+            "action LNAV":      N_LNAV,
+            }
+
+    file_exists = os.path.isfile(file)
+
+    with open(file, 'a') as f:
+        headers = list(data.keys())
+        writer = csv.DictWriter(f, delimiter=',', lineterminator='\n', fieldnames=headers)
+
+        if not file_exists:
+            writer.writeheader()
+
+        writer.writerow(data)
 
     return
 
@@ -400,11 +341,14 @@ def update():
     # DONE:     then self.controller.store(previous_experience[idx], state) --> store this in a handy manner
 
     global TIMER
+    global TOTAL_REWARD
+    global N_CONFLICTS
+
     TIMER = TIMER + 1
 
     # TODO: check this logic
-    if EPISODE_COUNTER == EPISODE_LIMIT or TIMER == TIME_LIMIT:
-        reset()
+    if TIMER == TIME_LIMIT:
+        stack.stack("RESET")
         return
 
     # first check if an instruction was given at t - 1, then the experience buffer needs to be updated
@@ -412,12 +356,13 @@ def update():
         while PREVIOUS_ACTIONS:
             prev_state, action1, action2, ac1, ac2 = PREVIOUS_ACTIONS.pop()
 
-            # TODO: what if ac despawned? --> currently we remove this case
+            # DONE: what if ac despawned? --> currently we remove this case
             if ac1 in traf.id and ac2 in traf.id:
                 current_state = get_current_state(ac1, ac2)
 
                 # the reward is based on the current state, so can be taken directly from info of the simulator
                 reward = get_reward(ac1, ac2)
+                TOTAL_REWARD += reward
 
                 CONTROLLER.store_experiences(prev_state, action1, action2, reward, current_state)
 
@@ -428,20 +373,22 @@ def update():
     # DONE:         previous_experience.append((state, actions, aircraft))
 
     # TODO: add check when to reset --> after x timesteps
-    # TODO: add reset call after condition
 
     positions = {}
 
     # gather aircraft positions
     for acid, lat, lon, alt_m in zip(traf.id, traf.lat, traf.lon, traf.alt):
-        alt = m_to_ft(alt_m)
+        alt = pu.m_to_ft(alt_m)
         positions[acid] = (lat, lon, alt)
 
     # there is a possibility of not having any aircraft
     if not positions:
         return
 
-    collision_pairs = get_conflict_pairs(positions)     # list of tuples
+    collision_pairs = pu.get_conflict_pairs(positions)     # list of tuples
+
+    N_CONFLICTS += len(collision_pairs)
+
     resume_navigation(collision_pairs)
 
     # there is a possibility of not having any conflicts
@@ -471,27 +418,46 @@ def reset():
     global INSTRUCTED_AIRCRAFT
     global PREVIOUS_ACTIONS
     global EPISODE_COUNTER
+    global TOTAL_REWARD
+    global N_CONFLICTS
+    global N_LoS
+    global N_LEFT
+    global N_RIGHT
+    global N_DIR
+    global N_LNAV
     global TIMER
 
-    INSTRUCTED_AIRCRAFT = []
-    PREVIOUS_ACTIONS = []
     EPISODE_COUNTER += 1
-    TIMER = 0
 
     # TODO: if condition met call train function after n restarts
     loss = CONTROLLER.train(CONTROLLER.load_experiences())
-    print("\n Episode {} finished".format(EPISODE_COUNTER))
-    print("loss: {}\n", format(loss))
+    print("Episode {} finished".format(EPISODE_COUNTER))
     CONTROLLER.save_weights()
 
-    if EPISODE_COUNTER == EPISODE_LIMIT:
+    avg_reward = TOTAL_REWARD / N_CONFLICTS
+    write_episode_info(loss[0], avg_reward)
+
+    # reset all global variables
+    INSTRUCTED_AIRCRAFT = []
+    PREVIOUS_ACTIONS = []
+    TOTAL_REWARD = 0
+    N_CONFLICTS = 0
+    N_LoS = 0
+    N_LEFT = 0
+    N_RIGHT = 0
+    N_DIR = 0
+    N_LNAV = 0
+    TIMER = 0
+
+    # TODO: fix this....
+    if EPISODE_COUNTER == EPISODE_LENGTH:
         stack.stack("STOP")
 
-    # stack.stack('IC testplugin.scn')
-    stack.stack("RESET")
     stack.stack("TAXI ON")
     stack.stack("FF")
+
     return
+
 
 ### Other functions of your plugin
 def testplugin(argument):

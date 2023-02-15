@@ -74,10 +74,8 @@ class Controller(object):
         :param model_output: original model output
         :return: binary list with a one at two indices indicating what action ought to be taken by the aircraft
         """
-        print(model_output)
         first = model_output[:len(self.encoding)]
         second = model_output[len(self.encoding):len(self.encoding) * 2]
-        print(first, second)
 
         max_first = max(first)
         max_second = max(second)
@@ -131,7 +129,7 @@ class Controller(object):
         """
         state = np.asarray(state.get_state_as_list())
         input_state = tf.convert_to_tensor(state[None, :])
-        print(input_state)
+        # DEBUG print(input_state)
         action_q = self.model(input_state)
         model_output = action_q.numpy().tolist()[0]
         action = self.convert_to_binary(model_output)
