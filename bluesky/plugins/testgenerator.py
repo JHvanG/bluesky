@@ -14,7 +14,7 @@ from bluesky.tools import geo, areafilter
 ROUTES = "routes/"
 DEFINITION = "route_definition.json"
 ACID = 0
-MAX_AC = 20
+MAX_AC = 25
 PREVIOUS_ARRIVAL = None
 
 
@@ -35,7 +35,7 @@ def init_plugin():
         # Update interval in seconds. By default, your plugin's update function(s)
         # are called every timestep of the simulation. If your plugin needs less
         # frequent updates provide an update interval.
-        'update_interval': 20.0,
+        'update_interval': 30.0,
 
         # The update function is called after traffic is updated. Use this if you
         # want to do things as a result of what happens in traffic. If you need to
