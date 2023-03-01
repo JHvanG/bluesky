@@ -24,6 +24,8 @@ TIME_LIMIT = 360                # 1440 updates equates to approximately 2 hours 
 
 PREVIOUS_ACTIONS = []           # buffer for previous actions with the given state and the aircraft pair
 INSTRUCTED_AIRCRAFT = []        # list of aircraft that deviated from their flightpath
+CONFLICT_PAIRS = []             # list of aircraft that are currently in conflict with one another
+LoS_PAIRS = []                  # list of aircraft that have currently lost separation
 
 N_CONFLICTS = 0                 # counter for the number of conflicts that have been encountered
 N_LoS = 0                       # counter for the number of separation losses
@@ -324,21 +326,15 @@ def write_episode_info(loss: float, avg_reward: float):
 
 def update():
     """
-    This is where the RL functionality should occur
+    This is the main function of the plugin, which is called each update.
     """
 
     # ------------------------------------------------------------------------------------------------------------------
-    # DONE: determine possible conflicts --> add to set of pairs, ordered by proximity within pairs
-
     # TODO: get set of allowed actions (are there actions that are perhaps illegal?)
     # TODO: determine best action
     # TODO: handle aircraft that were given previous instructions (desire to go back to LNAV)
     # TODO: reward function needs to be made more complex
     # ------------------------------------------------------------------------------------------------------------------
-
-    # DONE: check if instruction was given at t - 1 -> previous_experience != None
-    # DONE:     reward = self.get_reward(positions, destinations, ac1, ac2) --> reward is not available before action
-    # DONE:     then self.controller.store(previous_experience[idx], state) --> store this in a handy manner
 
     global TIMER
     global TOTAL_REWARD
@@ -366,12 +362,6 @@ def update():
 
                 CONTROLLER.store_experiences(prev_state, action1, action2, reward, current_state)
 
-    # DONE: check for new pairs
-    # DONE:     then for all pairs:
-    # DONE:         actions = self.controller.act(state)
-    # DONE:         do actions
-    # DONE:         previous_experience.append((state, actions, aircraft))
-
     # TODO: add check when to reset --> after x timesteps
 
     positions = {}
@@ -385,18 +375,30 @@ def update():
     if not positions:
         return
 
-    collision_pairs = pu.get_conflict_pairs(positions)     # list of tuples
+    current_conflict_pairs = pu.get_conflict_pairs(positions)     # list of tuples
+    
+    # add new collision pairs to conflict pairs
+    for (ac1, ac2) in current_conflict_pairs:
+        if (ac1, ac2) not in CONFLICT_PAIRS and (ac2, ac1) not in CONFLICT_PAIRS:
+            CONFLICT_PAIRS.append((ac1, ac2))
+            N_CONFLICTS += 1
+        if pu.is_loss_of_separation(ac1, ac2) and 
 
-    N_CONFLICTS += len(collision_pairs)
+    # remove old conflict pairs that are no longer in conflict
+    for (ac1, ac2) in CONFLICT_PAIRS:
+        if (ac1, ac2) not in current_conflict_pairs and (ac2, ac1) not in current_conflict_pairs:
+            CONFLICT_PAIRS.remove((ac1, ac2))
+            
+    print("This timestep, there are {} conflicts".format(len(CONFLICT_PAIRS)))
 
-    resume_navigation(collision_pairs)
+    resume_navigation(current_conflict_pairs)
 
     # there is a possibility of not having any conflicts
-    if not collision_pairs:
+    if not current_conflict_pairs:
         return
 
     # give instructions to the aircraft and save the state, actions and corresponding aircraft id's
-    for ac1, ac2 in collision_pairs:
+    for ac1, ac2 in current_conflict_pairs:
         current_state = get_current_state(ac1, ac2)
 
         action1, action2 = CONTROLLER.act(current_state)

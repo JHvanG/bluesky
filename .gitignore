@@ -15,6 +15,7 @@ docs/_build/
 
 # virtual environment
 venv
+bluesky-env
 
 # PyBuilder
 target/
