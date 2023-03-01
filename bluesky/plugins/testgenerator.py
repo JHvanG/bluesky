@@ -200,7 +200,7 @@ def update():
     if n_ac < MAX_AC:
 
         trans, star = select_approach()
-        print(trans, star)
+        # print(trans, star)
         flightpath = read_approach_procedure(trans, star)
         spawn_aircraft(flightpath)
 

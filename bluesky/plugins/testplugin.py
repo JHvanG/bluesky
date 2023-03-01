@@ -18,7 +18,7 @@ HDG_CHANGE = 15.0               # HDG change instruction deviates 15 degrees fro
 TOTAL_REWARD = 0                # storage for total obtained reward this episode
 
 EPISODE_COUNTER = 0             # counter to keep track of how many episodes have passed
-EPISODE_LENGTH = 256            # THIS IS PROBABLY IRRELEVANT...
+EPISODE_LIMIT = 10000           # limits the amount of episodes
 TIMER = 0                       # counter to keep track of how many update calls were made this episode
 TIME_LIMIT = 360                # 1440 updates equates to approximately 2 hours of simulation time
 
@@ -274,7 +274,7 @@ def resume_navigation(collision_pairs):
 
     for ac in INSTRUCTED_AIRCRAFT:
         if not [pair for pair in collision_pairs if ac in pair] and ac in traf.id:
-            print("{} is resuming own navigation!".format(ac))
+            # print("{} is resuming own navigation!".format(ac))
             engage_lnav(ac)
 
     INSTRUCTED_AIRCRAFT = []
@@ -450,7 +450,7 @@ def reset():
     TIMER = 0
 
     # TODO: fix this....
-    if EPISODE_COUNTER == EPISODE_LENGTH:
+    if EPISODE_COUNTER == EPISODE_LIMIT:
         stack.stack("STOP")
 
     stack.stack("TAXI ON")

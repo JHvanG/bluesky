@@ -133,7 +133,7 @@ class Controller(object):
         action_q = self.model(input_state)
         model_output = action_q.numpy().tolist()[0]
         action = self.convert_to_binary(model_output)
-        print(action)
+        # print(action)
         success, act1, act2 = self.decode_actions(action)
 
         if not success:

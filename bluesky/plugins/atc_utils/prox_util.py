@@ -125,7 +125,7 @@ def get_conflict_pairs(position_list: dict) -> list[tuple[str, str]]:
         # print(f"Distance between {a} and {b} is {dist_h}nm horizontally and {dist_v}ft vertically.")
 
         if dist_h < SEP_REP_HOR and dist_v < SEP_REP_VER:
-            print(f"{a} and {b} are within the notification range of each other")
+            # print(f"{a} and {b} are within the notification range of each other")
             conflict_list.append((str(a), str(b)))
             conflict_dist.append(direct_distance(dist_h, dist_v))
 
