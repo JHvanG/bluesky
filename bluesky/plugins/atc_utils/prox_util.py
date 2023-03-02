@@ -24,6 +24,21 @@ def ft_to_nm(alt: int) -> float:
     return alt * FT_NM_FACTOR
 
 
+def both_aircraft_exits(ac1: str, ac2: str) -> bool:
+    """
+    Simple function that returns true only if both aircraft are present in the simulation.
+
+    :param ac1: string of id of ac1
+    :param ac2: string of id of ac2
+    :return: bool indicating whether both exits
+    """
+    if ac1 in traf.id and ac2 in traf.id:
+        return True
+    else:
+        print("one or both aircraft despawned!")
+        return False
+
+
 def within_stated_area(lat1: float, lat2: float, lon1: float, lon2: float,
                        alt1: int, alt2: int, h_lim: float, v_lim: int) -> bool:
     """
@@ -56,6 +71,9 @@ def is_within_alert_distance(ac1: str, ac2: str) -> bool:
     :param ac2: id of aircraft 2
     :return: boolean for a loss of separation
     """
+    if not both_aircraft_exits(ac1, ac2):
+        return False
+
     idx1 = traf.id.index(ac1)
     idx2 = traf.id.index(ac2)
 
@@ -77,6 +95,9 @@ def is_loss_of_separation(ac1: str, ac2: str) -> bool:
     :param ac2: id of aircraft 2
     :return: boolean for a loss of separation
     """
+    if not both_aircraft_exits(ac1, ac2):
+        return False
+
     idx1 = traf.id.index(ac1)
     idx2 = traf.id.index(ac2)
 

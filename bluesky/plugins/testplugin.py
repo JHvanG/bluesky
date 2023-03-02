@@ -3,6 +3,7 @@
 
 import os
 import csv
+import time
 
 # Import the global bluesky objects. Uncomment the ones you need
 from bluesky import stack, traf, navdb  #, settings, sim, scr, tools
@@ -18,9 +19,11 @@ HDG_CHANGE = 15.0               # HDG change instruction deviates 15 degrees fro
 TOTAL_REWARD = 0                # storage for total obtained reward this episode
 
 EPISODE_COUNTER = 0             # counter to keep track of how many episodes have passed
-EPISODE_LIMIT = 10000           # limits the amount of episodes
+EPISODE_LIMIT = 1000            # limits the amount of episodes
+START = 0                       # start time
 TIMER = 0                       # counter to keep track of how many update calls were made this episode
-TIME_LIMIT = 360                # 1440 updates equates to approximately 2 hours of simulation time
+TIME_LIMIT = 720                # 1440 updates equates to approximately 2 hours of simulation time
+CONFLICT_LIMIT = 100            # NOTE: rather randomly selected
 
 PREVIOUS_ACTIONS = []           # buffer for previous actions with the given state and the aircraft pair
 INSTRUCTED_AIRCRAFT = []        # list of aircraft that deviated from their flightpath
@@ -196,7 +199,6 @@ def get_reward(ac1: str, ac2: str) -> int:
 
     # TODO: make more complex
     if pu.is_loss_of_separation(ac1, ac2):
-        N_LoS += 1
         return -1
     elif has_reached_goal(ac1) or has_reached_goal(ac2):
         return 1
@@ -276,7 +278,7 @@ def resume_navigation(collision_pairs):
 
     for ac in INSTRUCTED_AIRCRAFT:
         if not [pair for pair in collision_pairs if ac in pair] and ac in traf.id:
-            # print("{} is resuming own navigation!".format(ac))
+            print("{} is resuming own navigation!".format(ac))
             engage_lnav(ac)
 
     INSTRUCTED_AIRCRAFT = []
@@ -299,6 +301,8 @@ def write_episode_info(loss: float, avg_reward: float):
     if not os.path.exists(path):
         os.makedirs(path)
 
+    elapsed_time = round(time.time() - START, 2)
+
     data = {"episode":          EPISODE_COUNTER,
             "loss":             loss,
             "average reward":   avg_reward,
@@ -308,6 +312,7 @@ def write_episode_info(loss: float, avg_reward: float):
             "action RIGHT":     N_RIGHT,
             "action DIRECT":    N_DIR,
             "action LNAV":      N_LNAV,
+            "duration":         elapsed_time
             }
 
     file_exists = os.path.isfile(file)
@@ -337,13 +342,17 @@ def update():
     # ------------------------------------------------------------------------------------------------------------------
 
     global TIMER
+    global START
     global TOTAL_REWARD
     global N_CONFLICTS
+    global N_LoS
+
+    if TIMER == 0:
+        START = time.time()
 
     TIMER = TIMER + 1
 
-    # TODO: check this logic
-    if TIMER == TIME_LIMIT:
+    if TIMER == TIME_LIMIT or N_CONFLICTS >= CONFLICT_LIMIT:
         stack.stack("RESET")
         return
 
@@ -362,8 +371,6 @@ def update():
 
                 CONTROLLER.store_experiences(prev_state, action1, action2, reward, current_state)
 
-    # TODO: add check when to reset --> after x timesteps
-
     positions = {}
 
     # gather aircraft positions
@@ -376,21 +383,29 @@ def update():
         return
 
     current_conflict_pairs = pu.get_conflict_pairs(positions)     # list of tuples
-    
-    # add new collision pairs to conflict pairs
-    for (ac1, ac2) in current_conflict_pairs:
-        if (ac1, ac2) not in CONFLICT_PAIRS and (ac2, ac1) not in CONFLICT_PAIRS:
-            CONFLICT_PAIRS.append((ac1, ac2))
-            N_CONFLICTS += 1
-        if pu.is_loss_of_separation(ac1, ac2) and 
 
     # remove old conflict pairs that are no longer in conflict
     for (ac1, ac2) in CONFLICT_PAIRS:
         if (ac1, ac2) not in current_conflict_pairs and (ac2, ac1) not in current_conflict_pairs:
             CONFLICT_PAIRS.remove((ac1, ac2))
-            
-    print("This timestep, there are {} conflicts".format(len(CONFLICT_PAIRS)))
 
+    # remove old LoS pairs that are no longer in LoS
+    for (ac1, ac2) in LoS_PAIRS:
+        if not pu.is_loss_of_separation(ac1, ac2):
+            LoS_PAIRS.remove((ac1, ac2))
+
+    # add new collision pairs to conflict pairs and new LoS pairs to stored pairs
+    for (ac1, ac2) in current_conflict_pairs:
+        if (ac1, ac2) not in CONFLICT_PAIRS and (ac2, ac1) not in CONFLICT_PAIRS:
+            CONFLICT_PAIRS.append((ac1, ac2))
+            N_CONFLICTS += 1
+        if pu.is_loss_of_separation(ac1, ac2) and (ac1, ac2) not in LoS_PAIRS and (ac2, ac1) not in LoS_PAIRS:
+            LoS_PAIRS.append((ac1, ac2))
+            N_LoS += 1
+            
+    print("This timestep, there are {} conflicts and {} losses of separation".format(len(CONFLICT_PAIRS), len(LoS_PAIRS)))
+
+    # TODO: is this correct
     resume_navigation(current_conflict_pairs)
 
     # there is a possibility of not having any conflicts
@@ -419,6 +434,9 @@ def reset():
     print("resetting main plugin")
     global INSTRUCTED_AIRCRAFT
     global PREVIOUS_ACTIONS
+    global CONFLICT_PAIRS
+    global LoS_PAIRS
+
     global EPISODE_COUNTER
     global TOTAL_REWARD
     global N_CONFLICTS
@@ -428,6 +446,7 @@ def reset():
     global N_DIR
     global N_LNAV
     global TIMER
+    global START
 
     EPISODE_COUNTER += 1
 
@@ -442,6 +461,9 @@ def reset():
     # reset all global variables
     INSTRUCTED_AIRCRAFT = []
     PREVIOUS_ACTIONS = []
+    CONFLICT_PAIRS = []
+    LoS_PAIRS = []
+
     TOTAL_REWARD = 0
     N_CONFLICTS = 0
     N_LoS = 0
@@ -450,8 +472,8 @@ def reset():
     N_DIR = 0
     N_LNAV = 0
     TIMER = 0
+    START = 0
 
-    # TODO: fix this....
     if EPISODE_COUNTER == EPISODE_LIMIT:
         stack.stack("STOP")
 

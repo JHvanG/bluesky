@@ -15,7 +15,9 @@ ROUTES = "routes/"
 DEFINITION = "route_definition.json"
 ACID = 0
 MAX_AC = 20
+ELEMENT_COUNTER = 0
 PREVIOUS_ARRIVAL = None
+ONLY_TRANSITION = True
 
 
 ### Initialization function of your plugin. Do not change the name of this
@@ -35,7 +37,7 @@ def init_plugin():
         # Update interval in seconds. By default, your plugin's update function(s)
         # are called every timestep of the simulation. If your plugin needs less
         # frequent updates provide an update interval.
-        'update_interval': 20.0,
+        'update_interval': 35.0,
 
         # The update function is called after traffic is updated. Use this if you
         # want to do things as a result of what happens in traffic. If you need to
@@ -49,7 +51,7 @@ def init_plugin():
 
     stackfunctions = {
         # The command name for your function
-        'APCSPAWN': [
+        'DRAW': [
             # A short usage string. This will be printed if you type HELP <name> in the BlueSky console
             'APCSPAWN argument',
 
@@ -57,7 +59,7 @@ def init_plugin():
             'txt',
 
             # The name of your function in this plugin
-            apc_spawn(),
+            draw,
 
             # a longer help text of your function.
             'Spawn aircraft following standard approaches.']
@@ -85,11 +87,19 @@ def select_approach() -> (str, str):
         data = json.load(f)
 
     rwy = random.choice(list(data.keys()))
-    transition = random.choice(list(data[rwy].keys()))
-    all_arrivals = data[rwy][transition]
-    arrival = random.choice([arr for arr in all_arrivals if arr != PREVIOUS_ARRIVAL])
 
-    PREVIOUS_ARRIVAL = arrival
+    if ONLY_TRANSITION:
+        all_transitions = list(data[rwy].keys())
+        transition = random.choice([tran for tran in all_transitions if tran != PREVIOUS_ARRIVAL])
+        arrival = random.choice(data[rwy][transition])
+        PREVIOUS_ARRIVAL = transition
+        print("spawning ac at {}".format(transition))
+    else:
+        transition = random.choice(list(data[rwy].keys()))
+        all_arrivals = data[rwy][transition]
+        arrival = random.choice([arr for arr in all_arrivals if arr != PREVIOUS_ARRIVAL])
+        PREVIOUS_ARRIVAL = arrival
+        print("spawning ac at {}".format(arrival))
 
     rwy_transition = rwy + "-" + transition
     standard_arrival = transition + "-" + arrival
@@ -142,8 +152,11 @@ def read_approach_procedure(rwy_transition: str, star: str) -> dict:
     """
     flightplan = {}
 
-    flightplan = flightplan | read_fpl_from_txt_file(star)
-    flightplan = flightplan | read_fpl_from_txt_file(rwy_transition)
+    if ONLY_TRANSITION:
+        flightplan = flightplan | read_fpl_from_txt_file(rwy_transition)
+    else:
+        flightplan = flightplan | read_fpl_from_txt_file(star)
+        flightplan = flightplan | read_fpl_from_txt_file(rwy_transition)
 
     return flightplan
 
@@ -211,13 +224,66 @@ def reset():
     print("resetting spawn plugin")
     global ACID
     global PREVIOUS_ARRIVAL
+    global ELEMENT_COUNTER
 
+    ELEMENT_COUNTER = 0
     ACID = 0
     PREVIOUS_ARRIVAL = None
 
     return
 
 
+def load_all_approaches() -> dict[str: list[str]]:
+    """
+    This function loads all approaches that can be flown in the simulator.
+
+    :return: dictionary of stars, for each transition
+    """
+    approaches = {}
+
+    workdir = os.getcwd()
+    file = os.path.join(os.path.join(workdir, ROUTES), DEFINITION)
+
+    with open(file, 'r') as f:
+        data = json.load(f)
+
+        for rwy in list(data.keys()):
+            for transition in list(data[rwy].keys()):
+                arrivals = []
+                for arrival in data[rwy][transition]:
+                    arrivals.append(transition + "-" + arrival)
+                approaches[rwy + "-" + transition] = arrivals
+
+    return approaches
+
+
 ### Other functions of your plugin
-def apc_spawn():
-    pass
+def draw(x=0):
+    """
+        This function draws the approaches on the screen.
+        """
+    approaches = load_all_approaches()
+
+    for transition in list(approaches.keys()):
+        transition_plan = read_fpl_from_txt_file(transition)
+        # first_wpt = {list(transition_plan.keys())[0]: list(transition_plan.values())[0]}
+        # first = True
+
+        for prev, cur in zip(list(transition_plan.keys()), list(transition_plan.keys())[1:]):
+            global ELEMENT_COUNTER
+            stack.stack("LINE {} {} {}".format(ELEMENT_COUNTER, prev, cur))
+            ELEMENT_COUNTER += 1
+
+        # for star in approaches[transition]:
+        #     if first:
+        #         flightplan = read_fpl_from_txt_file(star) | transition_plan
+        #         first = False
+        #     else:
+        #         flightplan = read_fpl_from_txt_file(star) | first_wpt
+        #
+        #     for prev, cur in zip(list(flightplan.keys()), list(flightplan.keys())[1:]):
+        #         global ELEMENT_COUNTER
+        #         stack.stack("LINE {} {} {}".format(ELEMENT_COUNTER, prev, cur))
+        #         ELEMENT_COUNTER += 1
+
+    return
