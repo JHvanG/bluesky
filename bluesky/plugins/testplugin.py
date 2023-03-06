@@ -212,11 +212,11 @@ def engage_lnav(ac: str):
     return
 
 
-def direct_to_wpt(ac: str, wpt: str):
-    stack.stack(f"LNAV {ac} ON")
-    stack.stack(f"DIRECT {ac} {wpt}")
-    stack.stack(f"VNAV {ac} ON")
-    return
+# def direct_to_wpt(ac: str, wpt: str):
+#     stack.stack(f"LNAV {ac} ON")
+#     stack.stack(f"DIRECT {ac} {wpt}")
+#     stack.stack(f"VNAV {ac} ON")
+#     return
 
 
 def change_heading(ac: str, right: bool):
@@ -261,9 +261,9 @@ def handle_instruction(ac: str, action: str, wpt: str = None):
         N_RIGHT += 1
         change_heading(ac, True)
         INSTRUCTED_AIRCRAFT.append(ac)
-    elif action == "DIR":
-        N_DIR += 1
-        direct_to_wpt(ac, wpt)
+    # elif action == "DIR":
+    #     N_DIR += 1
+    #     direct_to_wpt(ac, wpt)
     elif action == "LNAV":
         N_LNAV += 1
         engage_lnav(ac)
@@ -278,7 +278,7 @@ def resume_navigation(collision_pairs):
 
     for ac in INSTRUCTED_AIRCRAFT:
         if not [pair for pair in collision_pairs if ac in pair] and ac in traf.id:
-            print("{} is resuming own navigation!".format(ac))
+            # print("{} is resuming own navigation!".format(ac))
             engage_lnav(ac)
 
     INSTRUCTED_AIRCRAFT = []
@@ -348,6 +348,7 @@ def update():
     global N_LoS
 
     if TIMER == 0:
+        print("Plugin reset finished at: {}".format(time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time()))))
         START = time.time()
 
     TIMER = TIMER + 1
@@ -403,7 +404,7 @@ def update():
             LoS_PAIRS.append((ac1, ac2))
             N_LoS += 1
             
-    print("This timestep, there are {} conflicts and {} losses of separation".format(len(CONFLICT_PAIRS), len(LoS_PAIRS)))
+    # print("This timestep, there are {} conflicts and {} losses of separation".format(len(CONFLICT_PAIRS), len(LoS_PAIRS)))
 
     # TODO: is this correct
     resume_navigation(current_conflict_pairs)
@@ -431,6 +432,9 @@ def reset():
     """
     Reset after episode has finished.
     """
+
+    print("Plugin reset at: {}".format(time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time()))))
+
     print("resetting main plugin")
     global INSTRUCTED_AIRCRAFT
     global PREVIOUS_ACTIONS
@@ -455,7 +459,7 @@ def reset():
     print("Episode {} finished".format(EPISODE_COUNTER))
     CONTROLLER.save_weights()
 
-    avg_reward = TOTAL_REWARD / N_CONFLICTS
+    avg_reward = TOTAL_REWARD / (N_LEFT + N_RIGHT + N_DIR + N_LNAV)
     write_episode_info(loss[0], avg_reward)
 
     # reset all global variables
@@ -477,7 +481,7 @@ def reset():
     if EPISODE_COUNTER == EPISODE_LIMIT:
         stack.stack("STOP")
 
-    stack.stack("TAXI ON")
+    stack.stack("TAXI OFF")
     stack.stack("FF")
 
     return

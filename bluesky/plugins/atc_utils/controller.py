@@ -1,4 +1,5 @@
 import os
+import random
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
@@ -20,7 +21,8 @@ class Controller(object):
         """
         # Config parameters
         self.replay_buffer = ReplayBuffer()
-        self.encoding = {"HDG_L": 0, "HDG_R": 1, "DIR": 2, "LNAV": 3}
+        # self.encoding = {"HDG_L": 0, "HDG_R": 1, "DIR": 2, "LNAV": 3}
+        self.encoding = {"HDG_L": 0, "HDG_R": 1, "LNAV": 2}
         self.num_actions = len(self.encoding)
         self.model = self._create_model()
         self.target_model = self._create_model()
@@ -29,7 +31,7 @@ class Controller(object):
         """
         This function decodes the output of the Deep-Q Network, which is a one-hot encoding of the actions of both
         aircraft in the conflict:
-        [ x x x x | x x x x ]
+        [ x x x | x x x ]
 
         :param ohe_action: one-hot encoded network output
         :return: success parameter and two actions associated with the network output
@@ -74,28 +76,47 @@ class Controller(object):
         :param model_output: original model output
         :return: binary list with a one at two indices indicating what action ought to be taken by the aircraft
         """
+
+        # print(model_output)
+
         first = model_output[:len(self.encoding)]
         second = model_output[len(self.encoding):len(self.encoding) * 2]
 
-        max_first = max(first)
-        max_second = max(second)
-        first_max_encountered = False
-        second_max_encountered = False
+        highest_first = [i for i, x in enumerate(first) if x == max(first)]
+        highest_second = [i for i, x in enumerate(second) if x == max(second)]
 
-        for i in range(len(first)):
-            if not first_max_encountered and first[i] == max_first:
-                first[i] = 1
-                first_max_encountered = True
-            else:
-                first[i] = 0
+        idx_first = random.choice(highest_first)
+        idx_second = random.choice(highest_second)
 
-            if not second_max_encountered and second[i] == max_second:
-                second[i] = 1
-                second_max_encountered = True
-            else:
-                second[i] = 0
+        binary_first = len(self.encoding) * [0]
+        binary_first[idx_first] = 1
+        binary_second = len(self.encoding) * [0]
+        binary_second[idx_second] = 1
 
-        binary = first + second
+        binary = binary_first + binary_second
+
+        # print(binary)
+
+        # max_first = max(first)
+        # max_second = max(second)
+        #
+        # first_max_encountered = False
+        # second_max_encountered = False
+        #
+        # for i in range(len(first)):
+        #     if not first_max_encountered and first[i] == max_first:
+        #         first[i] = 1
+        #         first_max_encountered = True
+        #     else:
+        #         first[i] = 0
+        #
+        #     if not second_max_encountered and second[i] == max_second:
+        #         second[i] = 1
+        #         second_max_encountered = True
+        #     else:
+        #         second[i] = 0
+        #
+        # binary = first + second
         return binary
 
     def store_experiences(self, state: State, act1: str, act2: str, reward: int, next_state: State):
@@ -132,6 +153,7 @@ class Controller(object):
         # DEBUG print(input_state)
         action_q = self.model(input_state)
         model_output = action_q.numpy().tolist()[0]
+        # print("raw output = {}".format(model_output))
         action = self.convert_to_binary(model_output)
         # print(action)
         success, act1, act2 = self.decode_actions(action)
@@ -174,7 +196,8 @@ class Controller(object):
         q_net = Sequential()
         q_net.add(Dense(64, input_dim=14, activation='relu', kernel_initializer='he_uniform'))
         q_net.add(Dense(32, activation='relu', kernel_initializer='he_uniform'))
-        q_net.add(Dense(8, activation='sigmoid', kernel_initializer='he_uniform'))
+        # q_net.add(Dense(8, activation='sigmoid', kernel_initializer='he_uniform'))
+        q_net.add(Dense(6, activation='sigmoid', kernel_initializer='he_uniform'))
         q_net.compile(loss="binary_crossentropy", optimizer=tf.optimizers.Adam(learning_rate=0.001))    # loss='mse')
         print(q_net.summary())
         return q_net
@@ -208,7 +231,8 @@ class Controller(object):
 
 if __name__ == "__main__":
     controller = Controller()
-    test_list = [0, 0, 0, 1, 0, 0, 1, 0]
+    # test_list = [0, 0, 0, 1, 0, 0, 1, 0]
+    test_list = [0, 0, 1, 0, 1, 0]
     status, act1, act2 = controller.decode_actions(test_list)
 
     if not status:

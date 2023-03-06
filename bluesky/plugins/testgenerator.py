@@ -93,13 +93,13 @@ def select_approach() -> (str, str):
         transition = random.choice([tran for tran in all_transitions if tran != PREVIOUS_ARRIVAL])
         arrival = random.choice(data[rwy][transition])
         PREVIOUS_ARRIVAL = transition
-        print("spawning ac at {}".format(transition))
+        # print("spawning ac at {}".format(transition))
     else:
         transition = random.choice(list(data[rwy].keys()))
         all_arrivals = data[rwy][transition]
         arrival = random.choice([arr for arr in all_arrivals if arr != PREVIOUS_ARRIVAL])
         PREVIOUS_ARRIVAL = arrival
-        print("spawning ac at {}".format(arrival))
+        # print("spawning ac at {}".format(arrival))
 
     rwy_transition = rwy + "-" + transition
     standard_arrival = transition + "-" + arrival
