@@ -2,3 +2,4 @@ bluesky-simulator[full]
 PyQt5
 tensorflow
 matplotlib
+seaborn

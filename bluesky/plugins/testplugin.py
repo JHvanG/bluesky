@@ -16,12 +16,12 @@ from bluesky.plugins.atc_utils import prox_util as pu
 
 
 HDG_CHANGE = 15.0               # HDG change instruction deviates 15 degrees from original
-TOTAL_REWARD = 0                # storage for total obtained reward this episode
+TOTAL_REWARD = 0                # storage for total obtained reward this epoch
 
-EPISODE_COUNTER = 0             # counter to keep track of how many episodes have passed
-EPISODE_LIMIT = 1000            # limits the amount of episodes
+EPOCH_COUNTER = 0             # counter to keep track of how many epochs have passed
+EPOCH_LIMIT = 1000            # limits the amount of epochs
 START = 0                       # start time
-TIMER = 0                       # counter to keep track of how many update calls were made this episode
+TIMER = 0                       # counter to keep track of how many update calls were made this epoch
 TIME_LIMIT = 720                # 1440 updates equates to approximately 2 hours of simulation time
 CONFLICT_LIMIT = 100            # NOTE: rather randomly selected
 
@@ -265,6 +265,7 @@ def handle_instruction(ac: str, action: str, wpt: str = None):
     #     N_DIR += 1
     #     direct_to_wpt(ac, wpt)
     elif action == "LNAV":
+        print("{} is resuming LNAV with flightplan {}".format(ac, traf.ap.route[traf.id.index(ac)].wpname))
         N_LNAV += 1
         engage_lnav(ac)
 
@@ -286,12 +287,12 @@ def resume_navigation(collision_pairs):
     return
 
 
-def write_episode_info(loss: float, avg_reward: float):
+def write_epoch_info(loss: float, avg_reward: float):
     """
-    This function simply keeps track of what occured during every episode, saving the actions, loss, conflicts and LoS.
+    This function simply keeps track of what occured during every epoch, saving the actions, loss, conflicts and LoS.
 
     :param loss: loss from training the network
-    :param avg_reward: average reward during this episode
+    :param avg_reward: average reward during this epoch
     """
 
     workdir = os.getcwd()
@@ -303,7 +304,7 @@ def write_episode_info(loss: float, avg_reward: float):
 
     elapsed_time = round(time.time() - START, 2)
 
-    data = {"episode":          EPISODE_COUNTER,
+    data = {"epoch":            EPOCH_COUNTER,
             "loss":             loss,
             "average reward":   avg_reward,
             "conflicts":        N_CONFLICTS,
@@ -430,7 +431,7 @@ def update():
 
 def reset():
     """
-    Reset after episode has finished.
+    Reset after epoch has finished.
     """
 
     print("Plugin reset at: {}".format(time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time()))))
@@ -441,7 +442,7 @@ def reset():
     global CONFLICT_PAIRS
     global LoS_PAIRS
 
-    global EPISODE_COUNTER
+    global EPOCH_COUNTER
     global TOTAL_REWARD
     global N_CONFLICTS
     global N_LoS
@@ -452,15 +453,20 @@ def reset():
     global TIMER
     global START
 
-    EPISODE_COUNTER += 1
+    EPOCH_COUNTER += 1
+
+    print("Epoch {} finished".format(EPOCH_COUNTER))
 
     # TODO: if condition met call train function after n restarts
-    loss = CONTROLLER.train(CONTROLLER.load_experiences())
-    print("Episode {} finished".format(EPISODE_COUNTER))
-    CONTROLLER.save_weights()
+    if EPOCH_COUNTER % 5 == 0:
+        loss = CONTROLLER.train(CONTROLLER.load_experiences())
+        CONTROLLER.save_weights()
 
-    avg_reward = TOTAL_REWARD / (N_LEFT + N_RIGHT + N_DIR + N_LNAV)
-    write_episode_info(loss[0], avg_reward)
+        avg_reward = TOTAL_REWARD / (N_LEFT + N_RIGHT + N_DIR + N_LNAV)
+        write_epoch_info(loss[0], avg_reward)
+    else:
+        avg_reward = TOTAL_REWARD / (N_LEFT + N_RIGHT + N_DIR + N_LNAV)
+        write_epoch_info(None, avg_reward)
 
     # reset all global variables
     INSTRUCTED_AIRCRAFT = []
@@ -478,7 +484,8 @@ def reset():
     TIMER = 0
     START = 0
 
-    if EPISODE_COUNTER == EPISODE_LIMIT:
+    if EPOCH_COUNTER == EPOCH_LIMIT:
+        # TODO: make graphs of results
         stack.stack("STOP")
 
     stack.stack("TAXI OFF")

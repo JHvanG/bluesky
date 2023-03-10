@@ -27,7 +27,7 @@ class ReplayBuffer(object):
 
     def sample_batch(self):
         """
-        Samples a batch of experiences for training.
+        Randomly samples a batch of experiences for training.
 
         :return: a list of experiences (state, action, reward, next state)
         """

@@ -226,6 +226,7 @@ class Controller(object):
 
         training_history = self.model.fit(x=state_batch, y=target_q, verbose=0)
         loss = training_history.history['loss']
+
         return loss
 
 

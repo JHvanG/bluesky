@@ -210,6 +210,10 @@ def update():
 
     n_ac = len(traf.id)
 
+    if ACID > 0:
+        idx = traf.id.index("AC{}".format(ACID - 1))
+        print("AC{} loaded flightplan: {}".format(ACID - 1, traf.ap.route[idx].wpname))
+
     if n_ac < MAX_AC:
 
         trans, star = select_approach()
