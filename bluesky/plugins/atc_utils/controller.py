@@ -131,7 +131,7 @@ class Controller(object):
         """
         action = self.encode_actions(act1, act2)
         self.replay_buffer.store_experience(state, action, reward, next_state)
-        pass
+        return
 
     def load_experiences(self):
         """
@@ -184,6 +184,7 @@ class Controller(object):
         """
         workdir = os.getcwd()
         self.model.load_weights(workdir, "results/model_weights/training_weights.h5")
+        return
 
     def _create_model(self) -> keras.Model:
         """
@@ -201,6 +202,13 @@ class Controller(object):
         q_net.compile(loss="binary_crossentropy", optimizer=tf.optimizers.Adam(learning_rate=0.001))    # loss='mse')
         print(q_net.summary())
         return q_net
+
+    def update_target_model(self):
+        """
+        Every C steps, the target model is updated with the weights of the current model.
+        """
+        self.target_model.set_weights(self.model.get_weights())
+        return
 
     def train(self, batch):
         """
