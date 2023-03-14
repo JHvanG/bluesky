@@ -20,6 +20,11 @@ class Controller(object):
         terms of network-related processes.
         """
         # Config parameters
+        self.epsilon = 1.0      # exploration parameter
+        self.max_epsilon = 1.0
+        self.min_epsilon = 0.1
+        self.epsilon_decay = 0.1
+        self.epsilons = [self.epsilon]
         self.replay_buffer = ReplayBuffer()
         # self.encoding = {"HDG_L": 0, "HDG_R": 1, "DIR": 2, "LNAV": 3}
         self.encoding = {"HDG_L": 0, "HDG_R": 1, "LNAV": 2}
@@ -148,6 +153,12 @@ class Controller(object):
         :param state: current state of the two aircraft in conflict.
         :return: two strings containing the actions to be taken.
         """
+        # exploration
+        if random.random() < self.epsilon:
+            act1 = random.choice(list(self.encoding.keys()))
+            act2 = random.choice(list(self.encoding.keys()))
+            return act1, act2
+
         state = np.asarray(state.get_state_as_list())
         input_state = tf.convert_to_tensor(state[None, :])
         # DEBUG print(input_state)
@@ -174,7 +185,7 @@ class Controller(object):
         if not os.path.exists(path):
             os.makedirs(path)
 
-        self.model.save_weights(path + "training_weights.h5")
+        self.model.save_weights(path + "training_weights_mse_exploration.h5")
         return
 
     def load_weights(self):
@@ -183,7 +194,7 @@ class Controller(object):
         randomly.
         """
         workdir = os.getcwd()
-        self.model.load_weights(workdir, "results/model_weights/training_weights.h5")
+        self.model.load_weights(workdir, "results/model_weights/training_weights_mse.h5")
         return
 
     def _create_model(self) -> keras.Model:
@@ -199,7 +210,7 @@ class Controller(object):
         q_net.add(Dense(32, activation='relu', kernel_initializer='he_uniform'))
         # q_net.add(Dense(8, activation='sigmoid', kernel_initializer='he_uniform'))
         q_net.add(Dense(6, activation='sigmoid', kernel_initializer='he_uniform'))
-        q_net.compile(loss="binary_crossentropy", optimizer=tf.optimizers.Adam(learning_rate=0.001))    # loss='mse')
+        q_net.compile(loss="mse", optimizer=tf.optimizers.Adam(learning_rate=0.001))
         print(q_net.summary())
         return q_net
 
@@ -234,6 +245,10 @@ class Controller(object):
 
         training_history = self.model.fit(x=state_batch, y=target_q, verbose=0)
         loss = training_history.history['loss']
+
+        # apply exploration decay
+        self.epsilon = max(self.min_epsilon, self.epsilon - (self.max_epsilon - self.min_epsilon) * self.epsilon_decay)
+        self.epsilons.append(self.epsilon)
 
         return loss
 

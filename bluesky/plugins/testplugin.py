@@ -166,6 +166,8 @@ def has_reached_goal(ac: str) -> bool:
     :return: boolean of reached goal status
     """
 
+    # TODO: is this still necessary?
+
     idx = traf.id.index(ac)
 
     lat = traf.lat[idx]
@@ -173,7 +175,7 @@ def has_reached_goal(ac: str) -> bool:
     dest = traf.ap.dest[idx]
 
     if dest == "":
-        print(f"{ac} has no destination defined")
+        # print(f"{ac} has no destination defined")
         return False
 
     # destination = "EH007"
@@ -265,7 +267,7 @@ def handle_instruction(ac: str, action: str, wpt: str = None):
     #     N_DIR += 1
     #     direct_to_wpt(ac, wpt)
     elif action == "LNAV":
-        print("{} is resuming LNAV with flightplan {}".format(ac, traf.ap.route[traf.id.index(ac)].wpname))
+        # print("{} is resuming LNAV with flightplan {}".format(ac, traf.ap.route[traf.id.index(ac)].wpname))
         N_LNAV += 1
         engage_lnav(ac)
 
@@ -297,14 +299,16 @@ def write_episode_info(loss: float, avg_reward: float):
 
     workdir = os.getcwd()
     path = os.path.join(workdir, "results/training_results/")
-    file = path + "training_results.csv"
+    file = path + "training_results_mse_exploration.csv"
 
     if not os.path.exists(path):
         os.makedirs(path)
 
     elapsed_time = round(time.time() - START, 2)
 
-    data = {"episode":            EPISODE_COUNTER,
+    epsilon = CONTROLLER.epsilon
+
+    data = {"episode":          EPISODE_COUNTER,
             "loss":             loss,
             "average reward":   avg_reward,
             "conflicts":        N_CONFLICTS,
@@ -313,7 +317,8 @@ def write_episode_info(loss: float, avg_reward: float):
             "action RIGHT":     N_RIGHT,
             "action DIRECT":    N_DIR,
             "action LNAV":      N_LNAV,
-            "duration":         elapsed_time
+            "duration":         elapsed_time,
+            "epsilon":          epsilon
             }
 
     file_exists = os.path.isfile(file)
@@ -489,6 +494,8 @@ def reset():
 
     if EPISODE_COUNTER == EPISODE_LIMIT:
         # TODO: make graphs of results
+        print("Reached stopping condition")
+        print("Epsilons: {}".format(CONTROLLER.epsilons))
         stack.stack("STOP")
 
     stack.stack("TAXI OFF")

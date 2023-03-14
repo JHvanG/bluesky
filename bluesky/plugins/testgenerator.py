@@ -194,8 +194,6 @@ def spawn_aircraft(flightpath: dict[str: int]):
             else:
                 stack.stack("ADDWPT AC{} {} {}".format(ACID, wpt, alt))
 
-    # second to last waypoint is at 2000 ft and is before the threshold
-    stack.stack("DEST AC{} {}".format(ACID, list(flightpath.keys())[-2]))
     stack.stack("VNAV AC{} ON".format(ACID))
 
     ACID += 1
@@ -210,9 +208,9 @@ def update():
 
     n_ac = len(traf.id)
 
-    if ACID > 0:
-        idx = traf.id.index("AC{}".format(ACID - 1))
-        print("AC{} loaded flightplan: {}".format(ACID - 1, traf.ap.route[idx].wpname))
+    # if ACID > 0:
+    #     idx = traf.id.index("AC{}".format(ACID - 1))
+    #     print("AC{} loaded flightplan: {}".format(ACID - 1, traf.ap.route[idx].wpname))
 
     if n_ac < MAX_AC:
 
