@@ -14,6 +14,9 @@ def loss_plot(data: list[list, list], filename: str):
     plt.figure(figsize=(10, 6), tight_layout=True)
     # plotting
     ax = sns.lineplot(x=data[0], y=data[1], linewidth=2.5)
+    plt.title("Progression of loss through episodes")
+    plt.xlabel("Episode")
+    plt.ylabel("Loss")
     plt.savefig(filename + "_loss.pdf")
 
 
@@ -21,6 +24,9 @@ def reward_plot(rewards: list, filename: str):
     plt.figure(figsize=(10, 6), tight_layout=True)
     # plotting
     ax = sns.lineplot(data=rewards, linewidth=2.5)
+    plt.title("Progression of rewards through episodes")
+    plt.xlabel("Episode")
+    plt.ylabel("Reward")
     plt.savefig(filename + "_reward.pdf")
 
 
@@ -28,6 +34,9 @@ def action_distribution(actions: dict, filename: str):
     plt.figure(figsize=(10, 6), tight_layout=True)
     # plotting
     ax = sns.lineplot(data=actions, linewidth=2.5)
+    plt.title("Action distribution through episodes")
+    plt.xlabel("Episode")
+    plt.ylabel("Count")
     plt.savefig(filename + "_action.pdf")
     pass
 
@@ -37,6 +46,9 @@ def separation_loss_plot(conflicts: list, los: list, filename: str):
     plt.figure(figsize=(10, 6), tight_layout=True)
     # plotting
     ax = sns.lineplot(data=ratio, linewidth=2.5)
+    plt.title("Conflicts / loss of separation through episodes")
+    plt.xlabel("Episode")
+    plt.ylabel("conflict/LoS")
     plt.savefig(filename + "_separation.pdf")
     pass
 
