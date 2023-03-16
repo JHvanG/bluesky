@@ -31,79 +31,6 @@ class Controller(object):
         self.model = self._create_model()
         self.target_model = self._create_model()
 
-    # TODO: is this necessary
-    def decode_actions(self, ohe_action: list[int]) -> (bool, str, str):
-        """
-        This function decodes the output of the Deep-Q Network, which is a one-hot encoding of the actions of both
-        aircraft in the conflict:
-        [ x x x ]
-
-        :param ohe_action: one-hot encoded network output
-        :return: success parameter and two actions associated with the network output
-        """
-
-        if len(ohe_action) != self.num_actions * 2:
-            return False, None, None
-
-        ohe_action1 = ohe_action[:int(self.num_actions)]
-        ohe_action2 = ohe_action[int(self.num_actions):int(self.num_actions*2)]
-
-        if ohe_action1.count(1) != 1 or ohe_action2.count(1) != 1:
-            return False, None, None
-
-        action1 = list(self.encoding.keys())[list(self.encoding.values()).index(ohe_action1.index(1))]
-        action2 = list(self.encoding.keys())[list(self.encoding.values()).index(ohe_action2.index(1))]
-
-        return True, action1, action2
-
-    # TODO: is this necessary
-    def encode_actions(self, act1: str, act2: str) -> list[int]:
-        """
-        This function takes two string type actions and encodes them to match the model output.
-
-        :param act1: action of the first aircraft in the conflict
-        :param act2: action of the second aircraft in the conflict
-        :return: binarized encoding of the actions
-        """
-        idx1 = self.encoding[act1]
-        idx2 = self.encoding[act2]
-        act1_enc = [0] * self.num_actions
-        act2_enc = [0] * self.num_actions
-
-        act1_enc[idx1] = 1
-        act2_enc[idx2] = 1
-
-        return act1_enc + act2_enc
-
-    # TODO: is this necessary
-    def convert_to_binary(self, model_output: list[float]) -> list[int]:
-        """
-        This function converts the model probabilistic model output to binary labels.
-
-        :param model_output: original model output
-        :return: binary list with a one at two indices indicating what action ought to be taken by the aircraft
-        """
-
-        # print(model_output)
-
-        first = model_output[:len(self.encoding)]
-        second = model_output[len(self.encoding):len(self.encoding) * 2]
-
-        highest_first = [i for i, x in enumerate(first) if x == max(first)]
-        highest_second = [i for i, x in enumerate(second) if x == max(second)]
-
-        idx_first = random.choice(highest_first)
-        idx_second = random.choice(highest_second)
-
-        binary_first = len(self.encoding) * [0]
-        binary_first[idx_first] = 1
-        binary_second = len(self.encoding) * [0]
-        binary_second[idx_second] = 1
-
-        binary = binary_first + binary_second
-
-        return binary
-
     def select_action(self, model_output: list[float]) -> str:
         """
         This function selects the action with the highest Q-value from the model output.
@@ -118,16 +45,16 @@ class Controller(object):
 
         return action
 
-    def store_experiences(self, state: State, action: str, reward: int, next_state: State):
+    def store_experiences(self, state: State, act_str: str, reward: int, next_state: State):
         """
         This function saves the experience from the current action and its result.
 
         :param state: state from which the action was taken
-        :param action: action taken by the aircraft in the conflict
+        :param act_str: action taken by the aircraft in the conflict as the string command
         :param reward: reward from the taken action
         :param next_state: state reached from the taken action
         """
-
+        action = self.encoding[act_str]
         self.replay_buffer.store_experience(state, action, reward, next_state)
         return
 
@@ -228,7 +155,6 @@ class Controller(object):
         for i in range(state_batch.shape[0]):
             target_q_val = reward_batch[i]
 
-            # if not done_batch[i]:
             # TODO: alter this to fit needs
             target_q_val += 0.95 * max_next_q[i]
 
