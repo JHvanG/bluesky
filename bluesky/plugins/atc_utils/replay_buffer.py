@@ -11,7 +11,7 @@ class ReplayBuffer(object):
     def __init__(self):
         self.experience_buffer = deque(maxlen=1000000)
 
-    def store_experience(self, state: State, action: list, reward: int, next_state: State):
+    def store_experience(self, state: State, action: str, reward: int, next_state: State):
         """
         Function for storing the experiences.
 

@@ -24,6 +24,21 @@ def ft_to_nm(alt: int) -> float:
     return alt * FT_NM_FACTOR
 
 
+def get_lat(ac):
+    idx = traf.id.index(ac)
+    return traf.lat[idx]
+
+
+def get_lon(ac):
+    idx = traf.id.index(ac)
+    return traf.lon[idx]
+
+
+def get_alt(ac):
+    idx = traf.id.index(ac)
+    return m_to_ft(traf.alt[idx])
+
+
 def both_aircraft_exits(ac1: str, ac2: str) -> bool:
     """
     Simple function that returns true only if both aircraft are present in the simulation.
@@ -48,14 +63,14 @@ def within_stated_area(lat1: float, lat2: float, lon1: float, lon2: float,
     :param lat2: ac2 latitude
     :param lon1: ac1 longitude
     :param lon2: ac2 longitude
-    :param alt1: ac1 altitude
-    :param alt2: ac2 altitude
-    :param h_lim: horizontal limit
-    :param v_lim: vertical limit
+    :param alt1: ac1 altitude (ft)
+    :param alt2: ac2 altitude (ft)
+    :param h_lim: horizontal limit (nm)
+    :param v_lim: vertical limit (ft)
     :return: boolean of within limits
     """
     _, dist_h = geo.qdrdist(lat1, lon1, lat2, lon2)  # bearing, distance (nm)
-    dist_v = abs(alt1 - alt2)
+    dist_v = abs(alt1 - alt2)  # distance (ft)
 
     if dist_h <= h_lim and dist_v <= v_lim:
         return True
@@ -74,15 +89,12 @@ def is_within_alert_distance(ac1: str, ac2: str) -> bool:
     if not both_aircraft_exits(ac1, ac2):
         return False
 
-    idx1 = traf.id.index(ac1)
-    idx2 = traf.id.index(ac2)
-
-    lat1 = traf.lat[idx1]
-    lat2 = traf.lat[idx2]
-    lon1 = traf.lon[idx1]
-    lon2 = traf.lon[idx2]
-    alt1 = traf.alt[idx1]
-    alt2 = traf.alt[idx2]
+    lat1 = get_lat(ac1)
+    lat2 = get_lat(ac2)
+    lon1 = get_lon(ac1)
+    lon2 = get_lon(ac2)
+    alt1 = get_alt(ac1)  # ft
+    alt2 = get_alt(ac2)  # ft
 
     return within_stated_area(lat1, lat2, lon1, lon2, alt1, alt2, SEP_REP_HOR, SEP_REP_VER)
 
@@ -98,15 +110,12 @@ def is_loss_of_separation(ac1: str, ac2: str) -> bool:
     if not both_aircraft_exits(ac1, ac2):
         return False
 
-    idx1 = traf.id.index(ac1)
-    idx2 = traf.id.index(ac2)
-
-    lat1 = traf.lat[idx1]
-    lat2 = traf.lat[idx2]
-    lon1 = traf.lon[idx1]
-    lon2 = traf.lon[idx2]
-    alt1 = traf.alt[idx1]
-    alt2 = traf.alt[idx2]
+    lat1 = get_lat(ac1)
+    lat2 = get_lat(ac2)
+    lon1 = get_lon(ac1)
+    lon2 = get_lon(ac2)
+    alt1 = get_alt(ac1)  # ft
+    alt2 = get_alt(ac2)  # ft
 
     return within_stated_area(lat1, lat2, lon1, lon2, alt1, alt2, SEP_MIN_HOR, SEP_MIN_VER)
 
@@ -136,8 +145,8 @@ def get_conflict_pairs(position_list: dict) -> list[tuple[str, str]]:
     all_pairs = [(a, b) for idx, a in enumerate(list(position_list.keys())) for b in list(position_list.keys())[idx+1:]]
 
     for a, b in all_pairs:
-        lat_a, lon_a, alt_a = position_list[a]
-        lat_b, lon_b, alt_b = position_list[b]
+        lat_a, lon_a, alt_a = position_list[a]  # alt in ft
+        lat_b, lon_b, alt_b = position_list[b]  # alt in ft
 
         _, dist_h = geo.qdrdist(lat_a, lon_a, lat_b, lon_b)   # bearing, distance (nm)
         dist_v = abs(alt_a - alt_b)
@@ -153,3 +162,59 @@ def get_conflict_pairs(position_list: dict) -> list[tuple[str, str]]:
     sorted_conflicts = [x for _, x in sorted(zip(conflict_dist, conflict_list))]
 
     return sorted_conflicts
+
+
+def get_distance_to_ac(ac1: str, ac2: str):
+    """
+    Returns the direct distance between the two provided aircraft.
+
+    :param ac1: aircraft id of first aircraft
+    :param ac2: aircraft id of second aircraft
+    :return: direct distance between the two aircraft
+    """
+
+    lat1 = get_lat(ac1)
+    lat2 = get_lat(ac2)
+    lon1 = get_lon(ac1)
+    lon2 = get_lon(ac2)
+    alt1 = get_alt(ac1)  # ft
+    alt2 = get_alt(ac2)  # ft
+
+    _, dist_h = geo.qdrdist(lat1, lon1, lat2, lon2)  # bearing, distance (nm)
+    dist_v = abs(alt1 - alt2)  # altitude difference (ft)
+
+    return direct_distance(dist_h, dist_v)
+
+
+def get_distance_to_alert_border():
+    return direct_distance(SEP_REP_HOR, SEP_REP_VER)
+
+
+def get_centre_of_mass(ac: str) -> tuple[float, float, int]:
+    """
+    This function determines the centre of mass of the aircraft surrounding the aircraft in question. For this, the
+    alerting distance is used.
+
+    :param ac: id of aircraft for which the scenario is evaluated
+    :return: lat, lon and average heading of centre of mass
+    """
+
+    lat = 0
+    lon = 0
+    hdg = 0
+
+    ac_in_proximity = 0
+
+    for acid in traf.id:
+        if is_within_alert_distance(ac, acid):
+            ac_in_proximity += 1
+            idx = traf.id.index(acid)
+            lat += traf.lat[idx]
+            lon += traf.lon[idx]
+            hdg += traf.hdg[idx]
+
+    lat /= ac_in_proximity
+    lon /= ac_in_proximity
+    hdg /= ac_in_proximity
+
+    return lat, lon, int(hdg)

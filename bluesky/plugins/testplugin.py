@@ -37,6 +37,8 @@ N_RIGHT = 0                     # counter for the number of times action RIGHT i
 N_DIR = 0                       # counter for the number of times action DIR is selected
 N_LNAV = 0                      # counter for the number of times action LNAV is selected
 
+ROUTES = {"A": 1, "R": 2, "S": 3}
+
 CONTROLLER = Controller()       # atc agent based on a DQN
 
 
@@ -94,10 +96,6 @@ def init_plugin():
     return config, stackfunctions
 
 
-### Periodic update functions that are called by the simulation. You can replace
-### this by anything, so long as you communicate this in init_plugin
-
-
 def get_next_two_waypoints(idx: int) -> (str, str):
     """
     Function that returns the next two waypoints of an aircraft, or doubles the only waypoint if there is just one.
@@ -119,7 +117,7 @@ def get_next_two_waypoints(idx: int) -> (str, str):
     return cur, nxt
 
 
-def load_state_data(ac: str) -> (float, float, int, int, int, int, int):
+def load_state_data(ac: str) -> (float, float, int, int, int):
     """
     This function gathers all data from one single aircraft that are required for a state definition.
 
@@ -131,14 +129,12 @@ def load_state_data(ac: str) -> (float, float, int, int, int, int, int):
     lat = traf.lat[idx]
     lon = traf.lon[idx]
     alt = traf.alt[idx]
-    tas = traf.tas[idx]
     hdg = traf.hdg[idx]
 
-    cur_id, nxt_id = get_next_two_waypoints(idx)
-    cur = navdb.wpid.index(cur_id)
-    nxt = navdb.wpid.index(nxt_id)
+    # the route of an aircraft is defined by the last letter in its id
+    rte = ROUTES[ac[-1]]
 
-    return lat, lon, alt, tas, hdg, cur, nxt
+    return lat, lon, alt, hdg, rte
 
 
 def get_current_state(ac1: str, ac2: str) -> State:
@@ -147,15 +143,16 @@ def get_current_state(ac1: str, ac2: str) -> State:
 
     :param ac1: string of aircraft 1's ID
     :param ac2: string of aircraft 2's ID
-    :param prev_state: State object of the previous state
     :return: current state given the two aircraft
     """
 
-    lat1, lon1, alt1, tas1, hdg1, cur1, nxt1 = load_state_data(ac1)
-    lat2, lon2, alt2, tas2, hdg2, cur2, nxt2 = load_state_data(ac2)
+    lat1, lon1, alt1, hdg1, rte1 = load_state_data(ac1)
+    lat2, lon2, alt2, hdg2, rte2 = load_state_data(ac2)
+    com_lat, com_lon, com_hdg = pu.get_centre_of_mass(ac1)
 
-    return State(lat1, lon1, alt1, tas1, hdg1, cur1, nxt1,
-                 lat2, lon2, alt2, tas2, hdg2, cur2, nxt2)
+    return State(lat1, lon1, alt1, hdg1, rte1,
+                 lat2, lon2, alt2, hdg2, rte2,
+                 com_lat, com_lon, com_hdg)
 
 
 def has_reached_goal(ac: str) -> bool:
@@ -202,23 +199,19 @@ def get_reward(ac1: str, ac2: str) -> int:
     # TODO: make more complex
     if pu.is_loss_of_separation(ac1, ac2):
         return -1
-    elif has_reached_goal(ac1) or has_reached_goal(ac2):
+    elif not pu.is_within_alert_distance(ac1, ac2):
         return 1
+    # TODO: more rewards with larger distance (max = conflict border?)
     else:
-        return 0
+        dist_ac = pu.get_distance_to_ac(ac1, ac2)
+        dist_alert = pu.get_distance_to_alert_border()
+        return min(1, dist_ac/dist_alert)
 
 
 def engage_lnav(ac: str):
     stack.stack(f"LNAV {ac} ON")
     stack.stack(f"VNAV {ac} ON")
     return
-
-
-# def direct_to_wpt(ac: str, wpt: str):
-#     stack.stack(f"LNAV {ac} ON")
-#     stack.stack(f"DIRECT {ac} {wpt}")
-#     stack.stack(f"VNAV {ac} ON")
-#     return
 
 
 def change_heading(ac: str, right: bool):
@@ -341,10 +334,15 @@ def update():
     """
 
     # ------------------------------------------------------------------------------------------------------------------
-    # TODO: get set of allowed actions (are there actions that are perhaps illegal?)
-    # TODO: determine best action
-    # TODO: handle aircraft that were given previous instructions (desire to go back to LNAV)
-    # TODO: reward function needs to be made more complex
+    # DONE: compute centre of mass and average heading
+    # DONE: redefine state space
+    # TODO: give action for single plane for only closest conflict
+    # TODO: increase action space to also do nothing?
+    # TODO: give reward based on distance to conflict --> the further the better
+    # TODO: start with just two transitions
+    # DONE: register route number
+    # DONE: get_current_state
+    # DONE: handle_instructions
     # ------------------------------------------------------------------------------------------------------------------
 
     global TIMER
@@ -366,9 +364,8 @@ def update():
     # first check if an instruction was given at t - 1, then the experience buffer needs to be updated
     if PREVIOUS_ACTIONS:
         while PREVIOUS_ACTIONS:
-            prev_state, action1, action2, ac1, ac2 = PREVIOUS_ACTIONS.pop()
+            prev_state, action, ac1, ac2 = PREVIOUS_ACTIONS.pop()
 
-            # DONE: what if ac despawned? --> currently we remove this case
             if ac1 in traf.id and ac2 in traf.id:
                 current_state = get_current_state(ac1, ac2)
 
@@ -376,19 +373,20 @@ def update():
                 reward = get_reward(ac1, ac2)
                 TOTAL_REWARD += reward
 
-                CONTROLLER.store_experiences(prev_state, action1, action2, reward, current_state)
+                CONTROLLER.store_experiences(prev_state, action, reward, current_state)
 
     positions = {}
 
     # gather aircraft positions
     for acid, lat, lon, alt_m in zip(traf.id, traf.lat, traf.lon, traf.alt):
         alt = pu.m_to_ft(alt_m)
-        positions[acid] = (lat, lon, alt)
+        positions[acid] = (lat, lon, alt)  # alt in ft
 
     # there is a possibility of not having any aircraft
     if not positions:
         return
 
+    # TODO: FIX THIS TO HAVE CONFLICTS FOR BOTH AC
     current_conflict_pairs = pu.get_conflict_pairs(positions)     # list of tuples
 
     # remove old conflict pairs that are no longer in conflict
@@ -410,8 +408,6 @@ def update():
             LoS_PAIRS.append((ac1, ac2))
             N_LoS += 1
             
-    # print("This timestep, there are {} conflicts and {} losses of separation".format(len(CONFLICT_PAIRS), len(LoS_PAIRS)))
-
     # TODO: is this correct
     resume_navigation(current_conflict_pairs)
 
@@ -426,10 +422,10 @@ def update():
         action1, action2 = CONTROLLER.act(current_state)
 
         # waypoint in state is the index of its id in the navdb
-        handle_instruction(ac1, action1, navdb.wpid[current_state.get_next_waypoint(1)])
-        handle_instruction(ac2, action2, navdb.wpid[current_state.get_next_waypoint(2)])
+        handle_instruction(ac1, action1)
+        handle_instruction(ac2, action2)
 
-        PREVIOUS_ACTIONS.append((current_state, action1, action2, ac1, ac2))
+        PREVIOUS_ACTIONS.append((current_state, action1, ac1, ac2))
 
     return
 

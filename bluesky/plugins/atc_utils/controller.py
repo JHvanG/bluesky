@@ -26,17 +26,17 @@ class Controller(object):
         self.epsilon_decay = 0.1
         self.epsilons = [self.epsilon]
         self.replay_buffer = ReplayBuffer()
-        # self.encoding = {"HDG_L": 0, "HDG_R": 1, "DIR": 2, "LNAV": 3}
         self.encoding = {"HDG_L": 0, "HDG_R": 1, "LNAV": 2}
         self.num_actions = len(self.encoding)
         self.model = self._create_model()
         self.target_model = self._create_model()
 
+    # TODO: is this necessary
     def decode_actions(self, ohe_action: list[int]) -> (bool, str, str):
         """
         This function decodes the output of the Deep-Q Network, which is a one-hot encoding of the actions of both
         aircraft in the conflict:
-        [ x x x | x x x ]
+        [ x x x ]
 
         :param ohe_action: one-hot encoded network output
         :return: success parameter and two actions associated with the network output
@@ -56,6 +56,7 @@ class Controller(object):
 
         return True, action1, action2
 
+    # TODO: is this necessary
     def encode_actions(self, act1: str, act2: str) -> list[int]:
         """
         This function takes two string type actions and encodes them to match the model output.
@@ -74,6 +75,7 @@ class Controller(object):
 
         return act1_enc + act2_enc
 
+    # TODO: is this necessary
     def convert_to_binary(self, model_output: list[float]) -> list[int]:
         """
         This function converts the model probabilistic model output to binary labels.
@@ -100,41 +102,32 @@ class Controller(object):
 
         binary = binary_first + binary_second
 
-        # print(binary)
-
-        # max_first = max(first)
-        # max_second = max(second)
-        #
-        # first_max_encountered = False
-        # second_max_encountered = False
-        #
-        # for i in range(len(first)):
-        #     if not first_max_encountered and first[i] == max_first:
-        #         first[i] = 1
-        #         first_max_encountered = True
-        #     else:
-        #         first[i] = 0
-        #
-        #     if not second_max_encountered and second[i] == max_second:
-        #         second[i] = 1
-        #         second_max_encountered = True
-        #     else:
-        #         second[i] = 0
-        #
-        # binary = first + second
         return binary
 
-    def store_experiences(self, state: State, act1: str, act2: str, reward: int, next_state: State):
+    def select_action(self, model_output: list[float]) -> str:
+        """
+        This function selects the action with the highest Q-value from the model output.
+
+        :param model_output: model output (Q-values)
+        :return: string of associated action
+        """
+
+        highest_qs = [i for i, x in enumerate(model_output) if x == max(model_output)]
+        idx = random.choice(highest_qs)
+        action = list(self.encoding.keys())[idx]
+
+        return action
+
+    def store_experiences(self, state: State, action: str, reward: int, next_state: State):
         """
         This function saves the experience from the current action and its result.
 
         :param state: state from which the action was taken
-        :param act1: action taken by first aircraft in the conflict
-        :param act2: action taken by the second aircraft in the conflict
+        :param action: action taken by the aircraft in the conflict
         :param reward: reward from the taken action
         :param next_state: state reached from the taken action
         """
-        action = self.encode_actions(act1, act2)
+
         self.replay_buffer.store_experience(state, action, reward, next_state)
         return
 
@@ -155,24 +148,19 @@ class Controller(object):
         """
         # exploration
         if random.random() < self.epsilon:
-            act1 = random.choice(list(self.encoding.keys()))
-            act2 = random.choice(list(self.encoding.keys()))
-            return act1, act2
+            # TODO: only do this when training
+            action = random.choice(list(self.encoding.keys()))
+            return action
 
         state = np.asarray(state.get_state_as_list())
         input_state = tf.convert_to_tensor(state[None, :])
-        # DEBUG print(input_state)
+
         action_q = self.model(input_state)
         model_output = action_q.numpy().tolist()[0]
-        # print("raw output = {}".format(model_output))
-        action = self.convert_to_binary(model_output)
-        # print(action)
-        success, act1, act2 = self.decode_actions(action)
 
-        if not success:
-            raise Exception("Model failed to produce legitimate output")
+        action = self.select_action(model_output)
 
-        return act1, act2
+        return action
 
     def save_weights(self):
         """
@@ -186,6 +174,7 @@ class Controller(object):
             os.makedirs(path)
 
         self.model.save_weights(path + "training_weights_mse_exploration.h5")
+
         return
 
     def load_weights(self):
@@ -193,8 +182,10 @@ class Controller(object):
         This function loads the model weights from a file. If the file is not present, it will initialize the model
         randomly.
         """
+
         workdir = os.getcwd()
-        self.model.load_weights(workdir, "results/model_weights/training_weights_mse.h5")
+        self.model.load_weights(workdir, "results/model_weights/training_weights_mse_exploration.h5")
+
         return
 
     def _create_model(self) -> keras.Model:
@@ -206,12 +197,12 @@ class Controller(object):
         """
 
         q_net = Sequential()
-        q_net.add(Dense(64, input_dim=14, activation='relu', kernel_initializer='he_uniform'))
+        q_net.add(Dense(64, input_dim=13, activation='relu', kernel_initializer='he_uniform'))
         q_net.add(Dense(32, activation='relu', kernel_initializer='he_uniform'))
-        # q_net.add(Dense(8, activation='sigmoid', kernel_initializer='he_uniform'))
-        q_net.add(Dense(6, activation='sigmoid', kernel_initializer='he_uniform'))
+        q_net.add(Dense(3, activation='sigmoid', kernel_initializer='he_uniform'))
         q_net.compile(loss="mse", optimizer=tf.optimizers.Adam(learning_rate=0.001))
         print(q_net.summary())
+
         return q_net
 
     def update_target_model(self):
@@ -251,15 +242,3 @@ class Controller(object):
         self.epsilons.append(self.epsilon)
 
         return loss
-
-
-if __name__ == "__main__":
-    controller = Controller()
-    # test_list = [0, 0, 0, 1, 0, 0, 1, 0]
-    test_list = [0, 0, 1, 0, 1, 0]
-    status, act1, act2 = controller.decode_actions(test_list)
-
-    if not status:
-        print("failure!")
-    else:
-        print(act1, act2)

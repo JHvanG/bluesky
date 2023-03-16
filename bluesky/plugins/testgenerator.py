@@ -18,6 +18,7 @@ MAX_AC = 20
 ELEMENT_COUNTER = 0
 PREVIOUS_ARRIVAL = None
 ONLY_TRANSITION = True
+ROUTE_ADDITION = None
 
 
 ### Initialization function of your plugin. Do not change the name of this
@@ -37,7 +38,7 @@ def init_plugin():
         # Update interval in seconds. By default, your plugin's update function(s)
         # are called every timestep of the simulation. If your plugin needs less
         # frequent updates provide an update interval.
-        'update_interval': 35.0,
+        'update_interval': 60.0,
 
         # The update function is called after traffic is updated. Use this if you
         # want to do things as a result of what happens in traffic. If you need to
@@ -80,6 +81,7 @@ def select_approach() -> (str, str):
     """
 
     global PREVIOUS_ARRIVAL
+    global ROUTE_ADDITION
 
     workdir = os.getcwd()
     file = os.path.join(os.path.join(workdir, ROUTES), DEFINITION)
@@ -93,6 +95,7 @@ def select_approach() -> (str, str):
         transition = random.choice([tran for tran in all_transitions if tran != PREVIOUS_ARRIVAL])
         arrival = random.choice(data[rwy][transition])
         PREVIOUS_ARRIVAL = transition
+        ROUTE_ADDITION = transition[0]
         # print("spawning ac at {}".format(transition))
     else:
         transition = random.choice(list(data[rwy].keys()))
@@ -186,15 +189,15 @@ def spawn_aircraft(flightpath: dict[str: int]):
     first = True
     for wpt, alt in flightpath.items():
         if first:
-            stack.stack("CRE AC{}, A320, {}, {}, {}, 220".format(ACID, wpt, hdg, alt))
+            stack.stack("CRE AC{}_{}, A320, {}, {}, {}, 220".format(ACID, ROUTE_ADDITION, wpt, hdg, alt))
             first = False
         else:
             if not alt:
-                stack.stack("ADDWPT AC{} {}".format(ACID, wpt))
+                stack.stack("ADDWPT AC{}_{} {}".format(ACID, ROUTE_ADDITION, wpt))
             else:
-                stack.stack("ADDWPT AC{} {} {}".format(ACID, wpt, alt))
+                stack.stack("ADDWPT AC{}_{} {} {}".format(ACID, ROUTE_ADDITION, wpt, alt))
 
-    stack.stack("VNAV AC{} ON".format(ACID))
+    stack.stack("VNAV AC{}_{} ON".format(ACID, ROUTE_ADDITION))
 
     ACID += 1
 
@@ -209,8 +212,8 @@ def update():
     n_ac = len(traf.id)
 
     # if ACID > 0:
-    #     idx = traf.id.index("AC{}".format(ACID - 1))
-    #     print("AC{} loaded flightplan: {}".format(ACID - 1, traf.ap.route[idx].wpname))
+    #     idx = traf.id.index("AC{}_{}".format(ACID - 1))
+    #     print("AC{}_{} loaded flightplan: {}".format(ACID - 1, traf.ap.route[idx].wpname))
 
     if n_ac < MAX_AC:
 
