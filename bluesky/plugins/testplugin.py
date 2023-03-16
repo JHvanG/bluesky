@@ -256,11 +256,7 @@ def handle_instruction(ac: str, action: str, wpt: str = None):
         N_RIGHT += 1
         change_heading(ac, True)
         INSTRUCTED_AIRCRAFT.append(ac)
-    # elif action == "DIR":
-    #     N_DIR += 1
-    #     direct_to_wpt(ac, wpt)
     elif action == "LNAV":
-        # print("{} is resuming LNAV with flightplan {}".format(ac, traf.ap.route[traf.id.index(ac)].wpname))
         N_LNAV += 1
         engage_lnav(ac)
 
@@ -274,7 +270,6 @@ def resume_navigation(collision_pairs):
 
     for ac in INSTRUCTED_AIRCRAFT:
         if not [pair for pair in collision_pairs if ac in pair] and ac in traf.id:
-            # print("{} is resuming own navigation!".format(ac))
             engage_lnav(ac)
 
     INSTRUCTED_AIRCRAFT = []
@@ -292,7 +287,7 @@ def write_episode_info(loss: float, avg_reward: float):
 
     workdir = os.getcwd()
     path = os.path.join(workdir, "results/training_results/")
-    file = path + "training_results_mse_exploration.csv"
+    file = path + "training_results_mse_expl_com.csv"
 
     if not os.path.exists(path):
         os.makedirs(path)
