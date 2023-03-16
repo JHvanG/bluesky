@@ -23,10 +23,11 @@ EPISODE_LIMIT = 1000            # limits the amount of episodes
 START = 0                       # start time
 TIMER = 0                       # counter to keep track of how many update calls were made this episode
 TIME_LIMIT = 720                # 1440 updates equates to approximately 2 hours of simulation time
-CONFLICT_LIMIT = 100            # NOTE: rather randomly selected
+CONFLICT_LIMIT = 50             # NOTE: rather randomly selected
 
 PREVIOUS_ACTIONS = []           # buffer for previous actions with the given state and the aircraft pair
 INSTRUCTED_AIRCRAFT = []        # list of aircraft that deviated from their flightpath
+KNOWN_CONFLICTS =[]             # list of conflict pairs that have been counted to the conflict total
 CONFLICT_PAIRS = []             # list of aircraft that are currently in conflict with one another
 LoS_PAIRS = []                  # list of aircraft that have currently lost separation
 
@@ -36,6 +37,9 @@ N_LEFT = 0                      # counter for the number of times action LEFT is
 N_RIGHT = 0                     # counter for the number of times action RIGHT is selected
 N_DIR = 0                       # counter for the number of times action DIR is selected
 N_LNAV = 0                      # counter for the number of times action LNAV is selected
+
+TRAIN_INTERVAL = 2              # the number of episodes before retraining the network
+TARGET_INTERVAL = 100           # the number of episodes before updating the target network
 
 ROUTES = {"A": 1, "R": 2, "S": 3}
 
@@ -96,6 +100,7 @@ def init_plugin():
     return config, stackfunctions
 
 
+# TODO: can this be removed?
 def get_next_two_waypoints(idx: int) -> (str, str):
     """
     Function that returns the next two waypoints of an aircraft, or doubles the only waypoint if there is just one.
@@ -196,12 +201,11 @@ def get_reward(ac1: str, ac2: str) -> int:
 
     global N_LoS
 
-    # TODO: make more complex
     if pu.is_loss_of_separation(ac1, ac2):
-        return -1
+        N_LoS += 1
+        return -5
     elif not pu.is_within_alert_distance(ac1, ac2):
         return 1
-    # TODO: more rewards with larger distance (max = conflict border?)
     else:
         dist_ac = pu.get_distance_to_ac(ac1, ac2)
         dist_alert = pu.get_distance_to_alert_border()
@@ -234,13 +238,12 @@ def change_heading(ac: str, right: bool):
     return
 
 
-def handle_instruction(ac: str, action: str, wpt: str = None):
+def handle_instruction(ac: str, action: str):
     """
     This function checks what instruction was given and calls the appropriate functions to handle these instructions.
 
     :param ac: aircraft id of aircraft that was given an instruction
     :param action: action that needs to be taken
-    :param wpt: possible waypoint if a DIR instruction is given
     """
 
     global N_LEFT
@@ -261,7 +264,7 @@ def handle_instruction(ac: str, action: str, wpt: str = None):
         engage_lnav(ac)
 
 
-def resume_navigation(collision_pairs):
+def allow_resume_navigation(conflict_pairs):
     """
     This function checks whether aircraft that received a heading change are allowed to resume their own navigation.
     """
@@ -269,7 +272,7 @@ def resume_navigation(collision_pairs):
     global INSTRUCTED_AIRCRAFT
 
     for ac in INSTRUCTED_AIRCRAFT:
-        if not [pair for pair in collision_pairs if ac in pair] and ac in traf.id:
+        if not [pair for pair in conflict_pairs if ac in pair[0]] and ac in traf.id:
             engage_lnav(ac)
 
     INSTRUCTED_AIRCRAFT = []
@@ -323,6 +326,18 @@ def write_episode_info(loss: float, avg_reward: float):
     return
 
 
+def update_known_conflicts():
+    """
+    This function removes any conflicts that have been counted and are no longer occurring.
+    """
+
+    for (ac1, ac2) in KNOWN_CONFLICTS:
+        if not pu.is_within_alert_distance(ac1, ac2):
+            KNOWN_CONFLICTS.remove((ac1, ac2))
+
+    return
+
+
 def update():
     """
     This is the main function of the plugin, which is called each update.
@@ -331,9 +346,9 @@ def update():
     # ------------------------------------------------------------------------------------------------------------------
     # DONE: compute centre of mass and average heading
     # DONE: redefine state space
-    # TODO: give action for single plane for only closest conflict
+    # DONE: give action for single plane for only closest conflict
     # TODO: increase action space to also do nothing?
-    # TODO: give reward based on distance to conflict --> the further the better
+    # DONE: give reward based on distance to conflict --> the further the better
     # TODO: start with just two transitions
     # DONE: register route number
     # DONE: get_current_state
@@ -356,6 +371,8 @@ def update():
         stack.stack("RESET")
         return
 
+    update_known_conflicts()
+
     # first check if an instruction was given at t - 1, then the experience buffer needs to be updated
     if PREVIOUS_ACTIONS:
         while PREVIOUS_ACTIONS:
@@ -370,57 +387,29 @@ def update():
 
                 CONTROLLER.store_experiences(prev_state, action, reward, current_state)
 
-    positions = {}
+    # this variable contains all the closest conflict pairs
+    current_conflict_pairs = pu.get_conflict_pairs()     # list of tuples
 
-    # gather aircraft positions
-    for acid, lat, lon, alt_m in zip(traf.id, traf.lat, traf.lon, traf.alt):
-        alt = pu.m_to_ft(alt_m)
-        positions[acid] = (lat, lon, alt)  # alt in ft
-
-    # there is a possibility of not having any aircraft
-    if not positions:
-        return
-
-    # TODO: FIX THIS TO HAVE CONFLICTS FOR BOTH AC
-    current_conflict_pairs = pu.get_conflict_pairs(positions)     # list of tuples
-
-    # remove old conflict pairs that are no longer in conflict
-    for (ac1, ac2) in CONFLICT_PAIRS:
-        if (ac1, ac2) not in current_conflict_pairs and (ac2, ac1) not in current_conflict_pairs:
-            CONFLICT_PAIRS.remove((ac1, ac2))
-
-    # remove old LoS pairs that are no longer in LoS
-    for (ac1, ac2) in LoS_PAIRS:
-        if not pu.is_loss_of_separation(ac1, ac2):
-            LoS_PAIRS.remove((ac1, ac2))
-
-    # add new collision pairs to conflict pairs and new LoS pairs to stored pairs
-    for (ac1, ac2) in current_conflict_pairs:
-        if (ac1, ac2) not in CONFLICT_PAIRS and (ac2, ac1) not in CONFLICT_PAIRS:
-            CONFLICT_PAIRS.append((ac1, ac2))
-            N_CONFLICTS += 1
-        if pu.is_loss_of_separation(ac1, ac2) and (ac1, ac2) not in LoS_PAIRS and (ac2, ac1) not in LoS_PAIRS:
-            LoS_PAIRS.append((ac1, ac2))
-            N_LoS += 1
-            
-    # TODO: is this correct
-    resume_navigation(current_conflict_pairs)
-
-    # there is a possibility of not having any conflicts
     if not current_conflict_pairs:
         return
 
-    # give instructions to the aircraft and save the state, actions and corresponding aircraft id's
-    for ac1, ac2 in current_conflict_pairs:
-        current_state = get_current_state(ac1, ac2)
+    # aircraft not in current conflicts that received instructions can return to their flightplans
+    allow_resume_navigation(current_conflict_pairs)
 
-        action1, action2 = CONTROLLER.act(current_state)
+    for (ac1, ac2) in current_conflict_pairs:
 
-        # waypoint in state is the index of its id in the navdb
-        handle_instruction(ac1, action1)
-        handle_instruction(ac2, action2)
+        # update known conflicts to include the current conflict
+        if not (ac1, ac2) in KNOWN_CONFLICTS:
+            KNOWN_CONFLICTS.append((ac1, ac2))
+            N_CONFLICTS += 1
 
-        PREVIOUS_ACTIONS.append((current_state, action1, ac1, ac2))
+        # instruct aircraft
+        state = get_current_state(ac1, ac2)
+        action = CONTROLLER.act(state)
+        handle_instruction(ac1, action)
+
+        # previous actions are maintained to apply rewards in the next state
+        PREVIOUS_ACTIONS.append((state, action, ac1, ac2))
 
     return
 
@@ -431,8 +420,8 @@ def reset():
     """
 
     print("Plugin reset at: {}".format(time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time()))))
-
     print("resetting main plugin")
+
     global INSTRUCTED_AIRCRAFT
     global PREVIOUS_ACTIONS
     global CONFLICT_PAIRS
@@ -452,13 +441,14 @@ def reset():
     EPISODE_COUNTER += 1
 
     print("Episode {} finished".format(EPISODE_COUNTER))
+    print("{} conflicts and {} losses of separation".format(N_CONFLICTS, N_LoS))
 
     # TODO: if condition met call train function after n restarts
-    if EPISODE_COUNTER % 4 == 0:
+    if EPISODE_COUNTER % TRAIN_INTERVAL == 0:
         loss = CONTROLLER.train(CONTROLLER.load_experiences())
         CONTROLLER.save_weights()
 
-        if EPISODE_COUNTER % 8 == 0:
+        if EPISODE_COUNTER % TARGET_INTERVAL == 0:
             CONTROLLER.update_target_model()
 
         avg_reward = TOTAL_REWARD / (N_LEFT + N_RIGHT + N_DIR + N_LNAV)
@@ -498,8 +488,8 @@ def reset():
 ### Other functions of your plugin
 def testplugin(argument):
     """
-     I doubt we need this function. This is purely for initialization
+    I doubt we need this function. This is purely for initialization
 
-     :param argument:
+    :param argument:
     """
     pass

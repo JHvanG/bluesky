@@ -16,7 +16,7 @@ class Controller(object):
     """
     def __init__(self):
         """
-        Initialziation of the Controller Agent. This class contains all essentials to operate the DRL based plugin in
+        Initialization of the Controller Agent. This class contains all essentials to operate the DRL based plugin in
         terms of network-related processes.
         """
         # Config parameters
@@ -173,7 +173,7 @@ class Controller(object):
         if not os.path.exists(path):
             os.makedirs(path)
 
-        self.model.save_weights(path + "training_weights_mse_exploration.h5")
+        self.model.save_weights(path + "training_weights_mse_expl_com.h5")
 
         return
 

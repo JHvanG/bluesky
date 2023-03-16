@@ -132,38 +132,6 @@ def direct_distance(hor: float, ver: int) -> float:
     return sqrt(hor ** 2 + ft_to_nm(ver) ** 2)
 
 
-def get_conflict_pairs(position_list: dict) -> list[tuple[str, str]]:
-    """
-    This functions returns a list of pairs that are nearing minimum separation.
-
-    :param position_list: Dictionary containing all present aircraft, along with their positions
-    :return: list of aircraft ID pairs (strings)
-    """
-
-    conflict_list = []
-    conflict_dist = []
-    all_pairs = [(a, b) for idx, a in enumerate(list(position_list.keys())) for b in list(position_list.keys())[idx+1:]]
-
-    for a, b in all_pairs:
-        lat_a, lon_a, alt_a = position_list[a]  # alt in ft
-        lat_b, lon_b, alt_b = position_list[b]  # alt in ft
-
-        _, dist_h = geo.qdrdist(lat_a, lon_a, lat_b, lon_b)   # bearing, distance (nm)
-        dist_v = abs(alt_a - alt_b)
-
-        # distance checks out, bearing is weird
-        # print(f"Distance between {a} and {b} is {dist_h}nm horizontally and {dist_v}ft vertically.")
-
-        if dist_h < SEP_REP_HOR and dist_v < SEP_REP_VER:
-            # print(f"{a} and {b} are within the notification range of each other")
-            conflict_list.append((str(a), str(b)))
-            conflict_dist.append(direct_distance(dist_h, dist_v))
-
-    sorted_conflicts = [x for _, x in sorted(zip(conflict_dist, conflict_list))]
-
-    return sorted_conflicts
-
-
 def get_distance_to_ac(ac1: str, ac2: str):
     """
     Returns the direct distance between the two provided aircraft.
@@ -190,6 +158,40 @@ def get_distance_to_alert_border():
     return direct_distance(SEP_REP_HOR, SEP_REP_VER)
 
 
+def get_conflict_pairs() -> list[tuple[str, str]]:
+    """
+    This functions returns a list of pairs that are within alerting distance of each other. If there are more, then the
+    closest is selected. Aircraft that have lost separation are excluded.
+
+    :return: list of aircraft ID pairs (strings)
+    """
+
+    conflict_list = []
+
+    for ac1 in traf.id:
+        current_shortest_dist = None
+        current_shortest_pair = None
+
+        for ac2 in traf.id:
+            # the ac's cannot be identical, have to be within alerting distance, but not in a loss of separation
+            if not ac1 == ac2 and not is_loss_of_separation(ac1, ac2) and is_within_alert_distance(ac1, ac2):
+                # the first pair fills in the values initially
+                if not current_shortest_dist:
+                    current_shortest_dist = get_distance_to_ac(ac1, ac2)
+                    current_shortest_pair = (ac1, ac2)
+                else:
+                    # if the distance between the current pair is shortest, replace the current values
+                    dist = get_distance_to_ac(ac1, ac2)
+                    if dist < current_shortest_dist:
+                        current_shortest_dist = dist
+                        current_shortest_pair = (ac1, ac2)
+
+        if current_shortest_pair:
+            conflict_list.append(current_shortest_pair)
+
+    return conflict_list
+
+
 def get_centre_of_mass(ac: str) -> tuple[float, float, int]:
     """
     This function determines the centre of mass of the aircraft surrounding the aircraft in question. For this, the
@@ -206,15 +208,16 @@ def get_centre_of_mass(ac: str) -> tuple[float, float, int]:
     ac_in_proximity = 0
 
     for acid in traf.id:
-        if is_within_alert_distance(ac, acid):
+        if acid != ac and is_within_alert_distance(ac, acid):
             ac_in_proximity += 1
             idx = traf.id.index(acid)
             lat += traf.lat[idx]
             lon += traf.lon[idx]
             hdg += traf.hdg[idx]
 
-    lat /= ac_in_proximity
-    lon /= ac_in_proximity
-    hdg /= ac_in_proximity
+    if not ac_in_proximity == 0:
+        lat /= ac_in_proximity
+        lon /= ac_in_proximity
+        hdg /= ac_in_proximity
 
     return lat, lon, int(hdg)
