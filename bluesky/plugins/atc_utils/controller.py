@@ -100,7 +100,7 @@ class Controller(object):
         if not os.path.exists(path):
             os.makedirs(path)
 
-        self.model.save_weights(path + "training_weights_mse_expl_com.h5")
+        self.model.save_weights(path + "training_weights_com.h5")
 
         return
 
@@ -111,7 +111,7 @@ class Controller(object):
         """
 
         workdir = os.getcwd()
-        self.model.load_weights(workdir, "results/model_weights/training_weights_mse_exploration.h5")
+        self.model.load_weights(workdir, "results/model_weights/training_weights_com.h5")
 
         return
 

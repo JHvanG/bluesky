@@ -290,7 +290,7 @@ def write_episode_info(loss: float, avg_reward: float):
 
     workdir = os.getcwd()
     path = os.path.join(workdir, "results/training_results/")
-    file = path + "training_results_mse_expl_com.csv"
+    file = path + "training_results_com.csv"
 
     if not os.path.exists(path):
         os.makedirs(path)
