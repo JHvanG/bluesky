@@ -15,6 +15,8 @@ from bluesky.plugins.atc_utils.controller import Controller
 from bluesky.plugins.atc_utils import prox_util as pu
 
 
+EXPERIMENT_NAME = "_two_transitions"
+
 HDG_CHANGE = 15.0               # HDG change instruction deviates 15 degrees from original
 TOTAL_REWARD = 0                # storage for total obtained reward this episode
 
@@ -290,7 +292,7 @@ def write_episode_info(loss: float, avg_reward: float):
 
     workdir = os.getcwd()
     path = os.path.join(workdir, "results/training_results/")
-    file = path + "training_results_com.csv"
+    file = path + "training_results_com" + EXPERIMENT_NAME + ".csv"
 
     if not os.path.exists(path):
         os.makedirs(path)
@@ -446,7 +448,7 @@ def reset():
     # TODO: if condition met call train function after n restarts
     if EPISODE_COUNTER % TRAIN_INTERVAL == 0:
         loss = CONTROLLER.train(CONTROLLER.load_experiences())
-        CONTROLLER.save_weights()
+        CONTROLLER.save_weights(name=EXPERIMENT_NAME)
 
         if EPISODE_COUNTER % TARGET_INTERVAL == 0:
             CONTROLLER.update_target_model()

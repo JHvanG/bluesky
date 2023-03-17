@@ -89,7 +89,7 @@ class Controller(object):
 
         return action
 
-    def save_weights(self):
+    def save_weights(self, name: str = ""):
         """
         This function simply saves the current model to an h5 file.
         """
@@ -100,18 +100,18 @@ class Controller(object):
         if not os.path.exists(path):
             os.makedirs(path)
 
-        self.model.save_weights(path + "training_weights_com.h5")
+        self.model.save_weights(path + "training_weights_com" + name + ".h5")
 
         return
 
-    def load_weights(self):
+    def load_weights(self, name: str = ""):
         """
         This function loads the model weights from a file. If the file is not present, it will initialize the model
         randomly.
         """
 
         workdir = os.getcwd()
-        self.model.load_weights(workdir, "results/model_weights/training_weights_com.h5")
+        self.model.load_weights(workdir, "results/model_weights/training_weights_com" + name + ".h5")
 
         return
 

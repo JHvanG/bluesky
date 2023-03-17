@@ -12,8 +12,8 @@ from bluesky.tools import geo, areafilter
 
 
 ROUTES = "routes/"
-DEFINITION = "route_definition.json"
-# DEFINITION = "route_definition_south_west.json"
+# DEFINITION = "route_definition.json"
+DEFINITION = "route_definition_south_west.json"
 ACID = 0
 MAX_AC = 20
 ELEMENT_COUNTER = 0
