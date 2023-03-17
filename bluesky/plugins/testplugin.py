@@ -19,7 +19,7 @@ HDG_CHANGE = 15.0               # HDG change instruction deviates 15 degrees fro
 TOTAL_REWARD = 0                # storage for total obtained reward this episode
 
 EPISODE_COUNTER = 0             # counter to keep track of how many episodes have passed
-EPISODE_LIMIT = 1000            # limits the amount of episodes
+EPISODE_LIMIT = 2000            # limits the amount of episodes
 START = 0                       # start time
 TIMER = 0                       # counter to keep track of how many update calls were made this episode
 TIME_LIMIT = 720                # 1440 updates equates to approximately 2 hours of simulation time
@@ -463,11 +463,21 @@ def reset():
     print("Episode {} finished".format(EPISODE_COUNTER))
 
     # TODO: if condition met call train function after n restarts
-    if EPISODE_COUNTER % 4 == 0:
+
+    action_sum = N_LEFT + N_RIGHT + N_DIR + N_LNAV
+
+    if action_sum == 0:
+        EPISODE_COUNTER -= 1
+        print("Encountered 0 actions in episode {}, redoing episode".format(EPISODE_COUNTER))
+        stack.stack("TAXI OFF")
+        stack.stack("FF")
+        return
+
+    if EPISODE_COUNTER % 2 == 0:
         loss = CONTROLLER.train(CONTROLLER.load_experiences())
         CONTROLLER.save_weights()
 
-        if EPISODE_COUNTER % 8 == 0:
+        if EPISODE_COUNTER % 100 == 0:
             CONTROLLER.update_target_model()
 
         avg_reward = TOTAL_REWARD / (N_LEFT + N_RIGHT + N_DIR + N_LNAV)
