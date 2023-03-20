@@ -23,7 +23,7 @@ EPISODE_LIMIT = 2000            # limits the amount of episodes
 START = 0                       # start time
 TIMER = 0                       # counter to keep track of how many update calls were made this episode
 TIME_LIMIT = 720                # 1440 updates equates to approximately 2 hours of simulation time
-CONFLICT_LIMIT = 100            # NOTE: rather randomly selected
+CONFLICT_LIMIT = 50            # NOTE: rather randomly selected
 
 PREVIOUS_ACTIONS = []           # buffer for previous actions with the given state and the aircraft pair
 INSTRUCTED_AIRCRAFT = []        # list of aircraft that deviated from their flightpath
