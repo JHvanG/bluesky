@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 sns.color_palette('deep')
 
 workdir = os.getcwd()
-path = os.path.join(workdir, "results/training_results/plots")
+path = os.path.join(workdir, "results/training_results/")
 
 
 def loss_plot(data: list[list, list], filename: str):

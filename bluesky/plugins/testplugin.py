@@ -15,7 +15,9 @@ from bluesky.plugins.atc_utils.controller import Controller
 from bluesky.plugins.atc_utils import prox_util as pu
 
 
-EXPERIMENT_NAME = "_two_transitions"
+EXPERIMENT_NAME = "_two_transitions_cooldown"
+
+EVAL_COOLDOWN = 4               # cooldown to let action take effect before applying reward
 
 HDG_CHANGE = 15.0               # HDG change instruction deviates 15 degrees from original
 TOTAL_REWARD = 0                # storage for total obtained reward this episode
@@ -362,6 +364,7 @@ def update():
     global TOTAL_REWARD
     global N_CONFLICTS
     global N_LoS
+    global PREVIOUS_ACTIONS
 
     if TIMER == 0:
         print("Plugin reset finished at: {}".format(time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time()))))
@@ -377,10 +380,14 @@ def update():
 
     # first check if an instruction was given at t - 1, then the experience buffer needs to be updated
     if PREVIOUS_ACTIONS:
+        actions_in_cooldown = []
         while PREVIOUS_ACTIONS:
-            prev_state, action, ac1, ac2 = PREVIOUS_ACTIONS.pop()
+            prev_state, action, ac1, ac2, cooldown = PREVIOUS_ACTIONS.pop()
 
-            if ac1 in traf.id and ac2 in traf.id:
+            # check if action has had chance to have effect
+            if cooldown < EVAL_COOLDOWN:
+                actions_in_cooldown.append((prev_state, action, ac1, ac2, cooldown + 1))
+            elif ac1 in traf.id and ac2 in traf.id:
                 current_state = get_current_state(ac1, ac2)
 
                 # the reward is based on the current state, so can be taken directly from info of the simulator
@@ -388,6 +395,10 @@ def update():
                 TOTAL_REWARD += reward
 
                 CONTROLLER.store_experiences(prev_state, action, reward, current_state)
+
+        # keep actions that were still in cooldown
+        if actions_in_cooldown:
+            PREVIOUS_ACTIONS = actions_in_cooldown
 
     # this variable contains all the closest conflict pairs
     current_conflict_pairs = pu.get_conflict_pairs()     # list of tuples
@@ -411,7 +422,7 @@ def update():
         handle_instruction(ac1, action)
 
         # previous actions are maintained to apply rewards in the next state
-        PREVIOUS_ACTIONS.append((state, action, ac1, ac2))
+        PREVIOUS_ACTIONS.append((state, action, ac1, ac2, 0))
 
     return
 
@@ -454,10 +465,10 @@ def reset():
             CONTROLLER.update_target_model()
 
         avg_reward = TOTAL_REWARD / (N_LEFT + N_RIGHT + N_DIR + N_LNAV)
-        write_episode_info(loss[0], avg_reward)
+        # write_episode_info(loss[0], avg_reward)
     else:
         avg_reward = TOTAL_REWARD / (N_LEFT + N_RIGHT + N_DIR + N_LNAV)
-        write_episode_info(None, avg_reward)
+        # write_episode_info(None, avg_reward)
 
     # reset all global variables
     INSTRUCTED_AIRCRAFT = []
