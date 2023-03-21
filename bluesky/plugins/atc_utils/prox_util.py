@@ -120,6 +120,21 @@ def is_loss_of_separation(ac1: str, ac2: str) -> bool:
     return within_stated_area(lat1, lat2, lon1, lon2, alt1, alt2, SEP_MIN_HOR, SEP_MIN_VER)
 
 
+def has_lost_separation(ac: str) -> bool:
+    """
+    This function checks if the provided aircraft has lost separation with any aircraft.
+
+    :param ac: aircraft id
+    :return: boolean indicating whether separation was lost
+    """
+
+    for acid in traf.id:
+        if not ac == acid and is_loss_of_separation(ac, acid):
+            return True
+
+    return False
+
+
 def direct_distance(hor: float, ver: int) -> float:
     """
     Using the Pythagorean Theorem, the straight-line distance is computed based on the horizontal and vertical distance.

@@ -6,63 +6,60 @@ import csv
 import time
 
 # Import the global bluesky objects. Uncomment the ones you need
-from bluesky import stack, traf, navdb  #, settings, sim, scr, tools
-from bluesky.tools.aero import ft
-from bluesky.tools import geo, areafilter
+from bluesky import stack, traf
 
 from bluesky.plugins.atc_utils.state import State
 from bluesky.plugins.atc_utils.controller import Controller
 from bluesky.plugins.atc_utils import prox_util as pu
 
+EXPERIMENT_NAME = "_two_transitions_cooldown_early_LoS"
 
-EXPERIMENT_NAME = "_two_transitions_cooldown"
+EVAL_COOLDOWN = 4  # cooldown to let action take effect before applying reward
 
-EVAL_COOLDOWN = 4               # cooldown to let action take effect before applying reward
+HDG_CHANGE = 15.0  # HDG change instruction deviates 15 degrees from original
+TOTAL_REWARD = 0  # storage for total obtained reward this episode
 
-HDG_CHANGE = 15.0               # HDG change instruction deviates 15 degrees from original
-TOTAL_REWARD = 0                # storage for total obtained reward this episode
+EPISODE_COUNTER = 0  # counter to keep track of how many episodes have passed
+EPISODE_LIMIT = 4000  # limits the amount of episodes
+START = 0  # start time
+TIMER = 0  # counter to keep track of how many update calls were made this episode
+TIME_LIMIT = 720  # 1440 updates equates to approximately 2 hours of simulation time
+CONFLICT_LIMIT = 50  # NOTE: rather randomly selected
 
-EPISODE_COUNTER = 0             # counter to keep track of how many episodes have passed
-EPISODE_LIMIT = 1000            # limits the amount of episodes
-START = 0                       # start time
-TIMER = 0                       # counter to keep track of how many update calls were made this episode
-TIME_LIMIT = 720                # 1440 updates equates to approximately 2 hours of simulation time
-CONFLICT_LIMIT = 50             # NOTE: rather randomly selected
+PREVIOUS_ACTIONS = []  # buffer for previous actions with the given state and the aircraft pair
+INSTRUCTED_AIRCRAFT = []  # list of aircraft that deviated from their flightpath
+KNOWN_CONFLICTS = []  # list of conflict pairs that have been counted to the conflict total
+CONFLICT_PAIRS = []  # list of aircraft that are currently in conflict with one another
+LoS_PAIRS = []  # list of aircraft that have currently lost separation
 
-PREVIOUS_ACTIONS = []           # buffer for previous actions with the given state and the aircraft pair
-INSTRUCTED_AIRCRAFT = []        # list of aircraft that deviated from their flightpath
-KNOWN_CONFLICTS =[]             # list of conflict pairs that have been counted to the conflict total
-CONFLICT_PAIRS = []             # list of aircraft that are currently in conflict with one another
-LoS_PAIRS = []                  # list of aircraft that have currently lost separation
+N_INSTRUCTIONS = 0  # counter for the number of instructions given
+N_CONFLICTS = 0  # counter for the number of conflicts that have been encountered
+N_LoS = 0  # counter for the number of separation losses
+N_LEFT = 0  # counter for the number of times action LEFT is selected
+N_RIGHT = 0  # counter for the number of times action RIGHT is selected
+N_DIR = 0  # counter for the number of times action DIR is selected
+N_LNAV = 0  # counter for the number of times action LNAV is selected
 
-N_CONFLICTS = 0                 # counter for the number of conflicts that have been encountered
-N_LoS = 0                       # counter for the number of separation losses
-N_LEFT = 0                      # counter for the number of times action LEFT is selected
-N_RIGHT = 0                     # counter for the number of times action RIGHT is selected
-N_DIR = 0                       # counter for the number of times action DIR is selected
-N_LNAV = 0                      # counter for the number of times action LNAV is selected
-
-TRAIN_INTERVAL = 2              # the number of episodes before retraining the network
-TARGET_INTERVAL = 100           # the number of episodes before updating the target network
+TRAIN_INTERVAL = 2  # the number of episodes before retraining the network
+TARGET_INTERVAL = 100  # the number of episodes before updating the target network
 
 ROUTES = {"A": 1, "R": 2, "S": 3}
 
-CONTROLLER = Controller()       # atc agent based on a DQN
+CONTROLLER = Controller()  # atc agent based on a DQN
 
 
 ### Initialization function of your plugin. Do not change the name of this
 ### function, as it is the way BlueSky recognises this file as a plugin.
 def init_plugin():
-
     # Addtional initilisation code
 
     # Configuration parameters
     config = {
         # The name of your plugin
-        'plugin_name':     'TESTPLUGIN',
+        'plugin_name': 'TESTPLUGIN',
 
         # The type of this plugin. For now, only simulation plugins are possible.
-        'plugin_type':     'sim',
+        'plugin_type': 'sim',
 
         # Update interval in seconds. By default, your plugin's update function(s)
         # are called every timestep of the simulation. If your plugin needs less
@@ -74,12 +71,12 @@ def init_plugin():
         # The update function is called after traffic is updated. Use this if you
         # want to do things as a result of what happens in traffic. If you need to
         # something before traffic is updated please use preupdate.
-        'update':          update,
+        'update': update,
 
         # If your plugin has a state, you will probably need a reset function to
         # clear the state in between simulations.
-        'reset':         reset
-        }
+        'reset': reset
+    }
 
     stackfunctions = {
         # The command name for your function
@@ -164,36 +161,6 @@ def get_current_state(ac1: str, ac2: str) -> State:
                  com_lat, com_lon, com_hdg)
 
 
-def has_reached_goal(ac: str) -> bool:
-    """
-    This function determines when an aircraft has reached its goal position (the last waypoint in its route).
-
-    :param ac: aircraft in question
-    :return: boolean of reached goal status
-    """
-
-    # TODO: is this still necessary?
-
-    idx = traf.id.index(ac)
-
-    lat = traf.lat[idx]
-    lon = traf.lon[idx]
-    dest = traf.ap.dest[idx]
-
-    if dest == "":
-        # print(f"{ac} has no destination defined")
-        return False
-
-    # destination = "EH007"
-    wplat = navdb.wplat[navdb.wpid.index(dest)]
-    wplon = navdb.wplon[navdb.wpid.index(dest)]
-
-    if wplat == lat and wplon == lon:
-        return True
-    else:
-        return False
-
-
 def get_reward(ac1: str, ac2: str) -> int:
     """
     This function returns the reward obtained from the action that was taken.
@@ -213,7 +180,7 @@ def get_reward(ac1: str, ac2: str) -> int:
     else:
         dist_ac = pu.get_distance_to_ac(ac1, ac2)
         dist_alert = pu.get_distance_to_alert_border()
-        return min(1, dist_ac/dist_alert)
+        return min(1, dist_ac / dist_alert)
 
 
 def engage_lnav(ac: str):
@@ -229,16 +196,21 @@ def change_heading(ac: str, right: bool):
     :param ac: aircraft id string
     :param right: boolean that is true when a right turn is required
     """
+
     if right:
         hdg_change = HDG_CHANGE
     else:
         hdg_change = -1 * HDG_CHANGE
 
     current_hdg = traf.hdg[traf.id.index(ac)]
-
     hdg = (current_hdg + hdg_change) % 360
 
     stack.stack(f"HDG {ac} {hdg}")
+
+    # if this aircraft has not received an instruction yet, add it to the instructed aircraft list
+    if ac not in INSTRUCTED_AIRCRAFT:
+        INSTRUCTED_AIRCRAFT.append(ac)
+
     return
 
 
@@ -258,11 +230,9 @@ def handle_instruction(ac: str, action: str):
     if action == "HDG_L":
         N_LEFT += 1
         change_heading(ac, False)
-        INSTRUCTED_AIRCRAFT.append(ac)
     elif action == "HDG_R":
         N_RIGHT += 1
         change_heading(ac, True)
-        INSTRUCTED_AIRCRAFT.append(ac)
     elif action == "LNAV":
         N_LNAV += 1
         engage_lnav(ac)
@@ -275,11 +245,16 @@ def allow_resume_navigation(conflict_pairs):
 
     global INSTRUCTED_AIRCRAFT
 
+    aircraft_to_keep = []
+
     for ac in INSTRUCTED_AIRCRAFT:
         if not [pair for pair in conflict_pairs if ac in pair[0]] and ac in traf.id:
+            print("{} resumes own navigation".format(ac))
             engage_lnav(ac)
+        else:
+            aircraft_to_keep.append(ac)
 
-    INSTRUCTED_AIRCRAFT = []
+    INSTRUCTED_AIRCRAFT = aircraft_to_keep
 
     return
 
@@ -303,17 +278,18 @@ def write_episode_info(loss: float, avg_reward: float):
 
     epsilon = CONTROLLER.epsilon
 
-    data = {"episode":          EPISODE_COUNTER,
-            "loss":             loss,
-            "average reward":   avg_reward,
-            "conflicts":        N_CONFLICTS,
-            "LoS":              N_LoS,
-            "action LEFT":      N_LEFT,
-            "action RIGHT":     N_RIGHT,
-            "action DIRECT":    N_DIR,
-            "action LNAV":      N_LNAV,
-            "duration":         elapsed_time,
-            "epsilon":          epsilon
+    data = {"episode": EPISODE_COUNTER,
+            "loss": loss,
+            "average reward": avg_reward,
+            "conflicts": N_CONFLICTS,
+            "LoS": N_LoS,
+            "instructions": N_INSTRUCTIONS,
+            "action LEFT": N_LEFT,
+            "action RIGHT": N_RIGHT,
+            "action DIRECT": N_DIR,
+            "action LNAV": N_LNAV,
+            "duration": elapsed_time,
+            "epsilon": epsilon
             }
 
     file_exists = os.path.isfile(file)
@@ -342,6 +318,21 @@ def update_known_conflicts():
     return
 
 
+def waiting_for_reward(ac1: str, ac2: str) -> bool:
+    """
+    This function checks whether the provided aircraft have received an instruction and have not gotten a reward.
+
+    :param ac1: string of aircraft id of first aircraft
+    :param ac2: string of aircraft id of second aircraft
+    :return: True if still in previous actions, else False
+    """
+    for _, _, stored_ac1, stored_ac2, _ in PREVIOUS_ACTIONS:
+        if ac1 == stored_ac1 and ac2 == stored_ac2:
+            return True
+
+    return False
+
+
 def update():
     """
     This is the main function of the plugin, which is called each update.
@@ -351,9 +342,9 @@ def update():
     # DONE: compute centre of mass and average heading
     # DONE: redefine state space
     # DONE: give action for single plane for only closest conflict
-    # TODO: increase action space to also do nothing?
+    # TODO: increase action space to also do nothing or do more drastic turns?
     # DONE: give reward based on distance to conflict --> the further the better
-    # TODO: start with just two transitions
+    # DONE: start with just two transitions
     # DONE: register route number
     # DONE: get_current_state
     # DONE: handle_instructions
@@ -362,6 +353,7 @@ def update():
     global TIMER
     global START
     global TOTAL_REWARD
+    global N_INSTRUCTIONS
     global N_CONFLICTS
     global N_LoS
     global PREVIOUS_ACTIONS
@@ -381,13 +373,16 @@ def update():
     # first check if an instruction was given at t - 1, then the experience buffer needs to be updated
     if PREVIOUS_ACTIONS:
         actions_in_cooldown = []
+
         while PREVIOUS_ACTIONS:
             prev_state, action, ac1, ac2, cooldown = PREVIOUS_ACTIONS.pop()
 
             # check if action has had chance to have effect
-            if cooldown < EVAL_COOLDOWN:
+            if cooldown < EVAL_COOLDOWN and not pu.is_loss_of_separation(ac1, ac2):
                 actions_in_cooldown.append((prev_state, action, ac1, ac2, cooldown + 1))
             elif ac1 in traf.id and ac2 in traf.id:
+                if cooldown < EVAL_COOLDOWN:
+                    print("{} has lost separation before cooldown ends".format(ac1))
                 current_state = get_current_state(ac1, ac2)
 
                 # the reward is based on the current state, so can be taken directly from info of the simulator
@@ -395,13 +390,14 @@ def update():
                 TOTAL_REWARD += reward
 
                 CONTROLLER.store_experiences(prev_state, action, reward, current_state)
+                # TODO: do I need to remove from instructed aircraft? No right as this would be taken care of
 
         # keep actions that were still in cooldown
         if actions_in_cooldown:
             PREVIOUS_ACTIONS = actions_in_cooldown
 
     # this variable contains all the closest conflict pairs
-    current_conflict_pairs = pu.get_conflict_pairs()     # list of tuples
+    current_conflict_pairs = pu.get_conflict_pairs()  # list of tuples
 
     if not current_conflict_pairs:
         return
@@ -411,18 +407,23 @@ def update():
 
     for (ac1, ac2) in current_conflict_pairs:
 
-        # update known conflicts to include the current conflict
+        # update conflict counter
         if not (ac1, ac2) in KNOWN_CONFLICTS:
             KNOWN_CONFLICTS.append((ac1, ac2))
             N_CONFLICTS += 1
 
-        # instruct aircraft
-        state = get_current_state(ac1, ac2)
-        action = CONTROLLER.act(state)
-        handle_instruction(ac1, action)
+        # update known conflicts to include the current conflict
+        if not waiting_for_reward(ac1, ac2):
+            # instruct aircraft
+            state = get_current_state(ac1, ac2)
+            action = CONTROLLER.act(state)
+            handle_instruction(ac1, action)
 
-        # previous actions are maintained to apply rewards in the next state
-        PREVIOUS_ACTIONS.append((state, action, ac1, ac2, 0))
+            # previous actions are maintained to apply rewards in the next state
+            PREVIOUS_ACTIONS.append((state, action, ac1, ac2, 0))
+
+            # update number of provided instructions
+            N_INSTRUCTIONS += 1
 
     return
 
@@ -442,6 +443,7 @@ def reset():
 
     global EPISODE_COUNTER
     global TOTAL_REWARD
+    global N_INSTRUCTIONS
     global N_CONFLICTS
     global N_LoS
     global N_LEFT
@@ -465,10 +467,10 @@ def reset():
             CONTROLLER.update_target_model()
 
         avg_reward = TOTAL_REWARD / (N_LEFT + N_RIGHT + N_DIR + N_LNAV)
-        # write_episode_info(loss[0], avg_reward)
+        write_episode_info(loss[0], avg_reward)
     else:
         avg_reward = TOTAL_REWARD / (N_LEFT + N_RIGHT + N_DIR + N_LNAV)
-        # write_episode_info(None, avg_reward)
+        write_episode_info(None, avg_reward)
 
     # reset all global variables
     INSTRUCTED_AIRCRAFT = []
@@ -477,6 +479,7 @@ def reset():
     LoS_PAIRS = []
 
     TOTAL_REWARD = 0
+    N_INSTRUCTIONS = 0
     N_CONFLICTS = 0
     N_LoS = 0
     N_LEFT = 0
