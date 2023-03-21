@@ -249,7 +249,6 @@ def allow_resume_navigation(conflict_pairs):
 
     for ac in INSTRUCTED_AIRCRAFT:
         if not [pair for pair in conflict_pairs if ac in pair[0]] and ac in traf.id:
-            print("{} resumes own navigation".format(ac))
             engage_lnav(ac)
         else:
             aircraft_to_keep.append(ac)
