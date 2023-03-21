@@ -22,7 +22,7 @@ class Controller(object):
         # Config parameters
         self.epsilon = 1.0      # exploration parameter
         self.max_epsilon = 1.0
-        self.min_epsilon = 0.1
+        self.min_epsilon = 0.05
         self.epsilon_decay = 0.1
         self.epsilons = [self.epsilon]
         self.replay_buffer = ReplayBuffer()
