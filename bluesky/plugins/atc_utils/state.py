@@ -1,13 +1,11 @@
 class State(object):
-    def __init__(self, lat1: float, lon1: float, alt1: int, hdg1: int, rte1: int, lat2: float, lon2: float, alt2: int,
+    def __init__(self, bearing: float, dist: float, alt1: int, hdg1: int, rte1: int, alt2: int,
                  hdg2: int, rte2: int, com_lat: float, com_lon: float, com_hdg: float):
-        self.lat1 = lat1
-        self.lon1 = lon1
+        self.bearing = bearing
+        self.dist = dist
         self.alt1 = alt1
         self.hdg1 = hdg1
         self.rte1 = rte1
-        self.lat2 = lat2
-        self.lon2 = lon2
         self.alt2 = alt2
         self.hdg2 = hdg2
         self.rte2 = rte2
@@ -27,7 +25,6 @@ class State(object):
 
         :return: List representation of the state
         """
-        state_list = [self.lat1, self.lon1, self.alt1, self.hdg1, self.rte1,
-                      self.lat2, self.lon2, self.alt2, self.hdg2, self.rte2,
+        state_list = [self.dist, self.angle, self.alt1, self.hdg1, self.rte1, self.alt2, self.hdg2, self.rte2,
                       self.com_lat, self.com_lon, self.com_hdg]
         return state_list

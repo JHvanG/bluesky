@@ -124,7 +124,7 @@ class Controller(object):
         """
 
         q_net = Sequential()
-        q_net.add(Dense(64, input_dim=13, activation='relu', kernel_initializer='he_uniform'))
+        q_net.add(Dense(64, input_dim=11, activation='relu', kernel_initializer='he_uniform'))
         q_net.add(Dense(32, activation='relu', kernel_initializer='he_uniform'))
         q_net.add(Dense(3, activation='sigmoid', kernel_initializer='he_uniform'))
         q_net.compile(loss="mse", optimizer=tf.optimizers.Adam(learning_rate=0.001))

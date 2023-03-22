@@ -6,6 +6,7 @@ import csv
 import time
 
 # Import the global bluesky objects. Uncomment the ones you need
+from bluesky.tools import geo
 from bluesky import stack, traf
 
 from bluesky.plugins.atc_utils.state import State
@@ -131,7 +132,6 @@ def load_state_data(ac: str) -> (float, float, int, int, int):
     :return: tuple of all data for one aircraft's state
     """
     idx = traf.id.index(ac)
-
     lat = traf.lat[idx]
     lon = traf.lon[idx]
     alt = traf.alt[idx]
@@ -156,8 +156,10 @@ def get_current_state(ac1: str, ac2: str) -> State:
     lat2, lon2, alt2, hdg2, rte2 = load_state_data(ac2)
     com_lat, com_lon, com_hdg = pu.get_centre_of_mass(ac1)
 
-    return State(lat1, lon1, alt1, hdg1, rte1,
-                 lat2, lon2, alt2, hdg2, rte2,
+    # TODO: verify that this is correct for the bearing
+    bearing, dist = geo.qdrdist(lat1, lon1, lat2, lon2)  # bearing, distance (nm)
+
+    return State(bearing, dist, alt1, hdg1, rte1, alt2, hdg2, rte2,
                  com_lat, com_lon, com_hdg)
 
 
