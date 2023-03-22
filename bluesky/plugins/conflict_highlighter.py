@@ -3,6 +3,7 @@
 import numpy as np
 from bluesky import stack, traf
 from bluesky.plugins.atc_utils import prox_util as pu
+from itertools import combinations
 
 def init_plugin():
 
@@ -19,7 +20,7 @@ def init_plugin():
         # Update interval in seconds. By default, your plugin's update function(s)
         # are called every timestep of the simulation. If your plugin needs less
         # frequent updates provide an update interval.
-        'update_interval': 0.0,
+        'update_interval': 5.0,
 
         # The update function is called after traffic is updated. Use this if you
         # want to do things as a result of what happens in traffic. If you need to
@@ -55,16 +56,17 @@ def init_plugin():
 ### this by anything, so long as you communicate this in init_plugin
 
 def update():
-    for ac1 in traf.id:
-        for ac2 in traf.id:
-            if ac1 != ac2:
-                if pu.is_loss_of_separation(ac1, ac2):
-                    stack.stack("")
+    for ac1, ac2 in list(combinations(traf.id, 2)):
+        if pu.is_loss_of_separation(ac1, ac2):
+            stack.stack("COLOUR {} RED".format(ac1))
+            stack.stack("COLOUR {} RED".format(ac2))
     pass
+
 
 def reset():
     pass
 
+
 ### Other functions of your plugin
-def highlighter():
+def highlighter(x=0):
     pass
