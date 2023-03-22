@@ -25,6 +25,6 @@ class State(object):
 
         :return: List representation of the state
         """
-        state_list = [self.dist, self.angle, self.alt1, self.hdg1, self.rte1, self.alt2, self.hdg2, self.rte2,
+        state_list = [self.bearing, self.dist, self.alt1, self.hdg1, self.rte1, self.alt2, self.hdg2, self.rte2,
                       self.com_lat, self.com_lon, self.com_hdg]
         return state_list

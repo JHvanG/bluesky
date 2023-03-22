@@ -13,7 +13,7 @@ from bluesky.plugins.atc_utils.state import State
 from bluesky.plugins.atc_utils.controller import Controller
 from bluesky.plugins.atc_utils import prox_util as pu
 
-EXPERIMENT_NAME = "_two_transitions_cooldown_early_LoS"
+EXPERIMENT_NAME = "_two_transitions_cooldown_early_LoS_rel_state"
 
 EVAL_COOLDOWN = 4  # cooldown to let action take effect before applying reward
 
@@ -382,9 +382,11 @@ def update():
             if cooldown < EVAL_COOLDOWN and not pu.is_loss_of_separation(ac1, ac2):
                 actions_in_cooldown.append((prev_state, action, ac1, ac2, cooldown + 1))
             elif ac1 in traf.id and ac2 in traf.id:
-                if cooldown < EVAL_COOLDOWN:
-                    print("{} has lost separation before cooldown ends".format(ac1))
+                # if cooldown < EVAL_COOLDOWN:
+                #     print("{} has lost separation before cooldown ends".format(ac1))
                 current_state = get_current_state(ac1, ac2)
+
+                # print("Current state of AC {}: {}".format(ac1, current_state.get_state_as_list()))
 
                 # the reward is based on the current state, so can be taken directly from info of the simulator
                 reward = get_reward(ac1, ac2)

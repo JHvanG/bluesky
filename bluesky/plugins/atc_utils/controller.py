@@ -73,6 +73,9 @@ class Controller(object):
         :param state: current state of the two aircraft in conflict.
         :return: two strings containing the actions to be taken.
         """
+
+        # print("Predicting on: {}".format(state.get_state_as_list()))
+
         # exploration
         if random.random() < self.epsilon:
             # TODO: only do this when training
