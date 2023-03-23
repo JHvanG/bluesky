@@ -52,6 +52,7 @@ CONTROLLER = Controller()  # atc agent based on a DQN
 ### function, as it is the way BlueSky recognises this file as a plugin.
 def init_plugin():
     # Addtional initilisation code
+    print("Writing with extension: {}".format(EXPERIMENT_NAME))
 
     # Configuration parameters
     config = {
