@@ -403,9 +403,6 @@ def update():
     # this variable contains all the closest conflict pairs
     current_conflict_pairs = pu.get_conflict_pairs()  # list of tuples
 
-    if not current_conflict_pairs:
-        return
-
     # aircraft not in current conflicts that received instructions can return to their flightplans
     allow_resume_navigation(current_conflict_pairs)
 
