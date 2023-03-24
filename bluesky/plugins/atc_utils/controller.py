@@ -20,10 +20,10 @@ class Controller(object):
         terms of network-related processes.
         """
         # Config parameters
-        self.epsilon = 1.0      # exploration parameter
+        self.epsilon = 1.0  # exploration parameter
         self.max_epsilon = 1.0
         self.min_epsilon = 0.05
-        self.epsilon_decay = 0.1
+        self.epsilon_decay = 0.005
         self.epsilons = [self.epsilon]
         self.replay_buffer = ReplayBuffer()
         self.encoding = {"HDG_L": 0, "HDG_R": 1, "LNAV": 2}

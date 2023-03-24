@@ -12,7 +12,9 @@ from bluesky.plugins.atc_utils.state import State
 from bluesky.plugins.atc_utils.controller import Controller
 from bluesky.plugins.atc_utils import prox_util as pu
 
-EXPERIMENT_NAME = "_two_transitions_cooldown_early_LoS"
+# LET OP: DE RIVER1D TRANSITION IS NU VERKORT MET EEN WAYPOINT!!!!!!!
+
+EXPERIMENT_NAME = "_two_transitions_cooldown_early_LoS_15_slow_decay_more_spacing"
 
 EVAL_COOLDOWN = 4  # cooldown to let action take effect before applying reward
 
@@ -398,9 +400,6 @@ def update():
 
     # this variable contains all the closest conflict pairs
     current_conflict_pairs = pu.get_conflict_pairs()  # list of tuples
-
-    if not current_conflict_pairs:
-        return
 
     # aircraft not in current conflicts that received instructions can return to their flightplans
     allow_resume_navigation(current_conflict_pairs)
