@@ -213,11 +213,14 @@ def get_centre_of_mass(ac: str) -> tuple[float, float, int]:
     alerting distance is used.
 
     :param ac: id of aircraft for which the scenario is evaluated
-    :return: lat, lon and average heading of centre of mass
+    :return: bearing, dist and average heading of centre of mass
     """
 
-    # TODO: return dist, hdg, hdg
     # TODO: add weight based on threat?
+
+    idx = traf.id.index(ac)
+    ac_lat = traf.lat[idx]
+    ac_lon = traf.lon[idx]
 
     lat = 0
     lon = 0
@@ -237,5 +240,7 @@ def get_centre_of_mass(ac: str) -> tuple[float, float, int]:
         lat /= ac_in_proximity
         lon /= ac_in_proximity
         hdg /= ac_in_proximity
+
+    bearing, dist = geo.qdrdist(ac_lat, ac_lon, lat, lon)
 
     return lat, lon, int(hdg)

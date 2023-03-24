@@ -155,13 +155,13 @@ def get_current_state(ac1: str, ac2: str) -> State:
 
     lat1, lon1, alt1, hdg1, rte1 = load_state_data(ac1)
     lat2, lon2, alt2, hdg2, rte2 = load_state_data(ac2)
-    com_lat, com_lon, com_hdg = pu.get_centre_of_mass(ac1)
+    com_bearing, com_dist, com_hdg = pu.get_centre_of_mass(ac1)
 
     # TODO: verify that this is correct for the bearing
     bearing, dist = geo.qdrdist(lat1, lon1, lat2, lon2)  # bearing, distance (nm)
 
     return State(bearing, dist, alt1, hdg1, rte1, alt2, hdg2, rte2,
-                 com_lat, com_lon, com_hdg)
+                 com_bearing, com_dist, com_hdg)
 
 
 def get_reward(ac1: str, ac2: str) -> int:

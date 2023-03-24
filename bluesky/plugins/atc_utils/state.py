@@ -1,6 +1,6 @@
 class State(object):
     def __init__(self, bearing: float, dist: float, alt1: int, hdg1: int, rte1: int, alt2: int,
-                 hdg2: int, rte2: int, com_lat: float, com_lon: float, com_hdg: float):
+                 hdg2: int, rte2: int, com_bearing: float, com_dist: float, com_hdg: float):
         self.bearing = bearing
         self.dist = dist
         self.alt1 = alt1
@@ -9,9 +9,8 @@ class State(object):
         self.alt2 = alt2
         self.hdg2 = hdg2
         self.rte2 = rte2
-        # TODO: change this to relative notation as well!
-        self.com_lat = com_lat
-        self.com_lon = com_lon
+        self.com_bearing = com_bearing
+        self.com_dist = com_dist
         self.com_hdg = com_hdg
 
     def get_route(self, ac: int):
@@ -27,5 +26,5 @@ class State(object):
         :return: List representation of the state
         """
         state_list = [self.bearing, self.dist, self.alt1, self.hdg1, self.rte1, self.alt2, self.hdg2, self.rte2,
-                      self.com_lat, self.com_lon, self.com_hdg]
+                      self.com_bearing, self.com_dist, self.com_hdg]
         return state_list
