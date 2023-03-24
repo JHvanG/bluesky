@@ -216,6 +216,9 @@ def get_centre_of_mass(ac: str) -> tuple[float, float, int]:
     :return: lat, lon and average heading of centre of mass
     """
 
+    # TODO: return dist, hdg, hdg
+    # TODO: add weight based on threat?
+
     lat = 0
     lon = 0
     hdg = 0

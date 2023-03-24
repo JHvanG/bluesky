@@ -9,6 +9,7 @@ class State(object):
         self.alt2 = alt2
         self.hdg2 = hdg2
         self.rte2 = rte2
+        # TODO: change this to relative notation as well!
         self.com_lat = com_lat
         self.com_lon = com_lon
         self.com_hdg = com_hdg
