@@ -5,15 +5,22 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 sns.color_palette('deep')
+sns.set_style('white')
 
 workdir = os.getcwd()
 path = os.path.join(workdir, "results/training_results/")
+
+LINEWIDTH = 1.5
 
 
 def loss_plot(data: list[list, list], filename: str):
     plt.figure(figsize=(10, 6), tight_layout=True)
     # plotting
-    ax = sns.lineplot(x=data[0], y=data[1], linewidth=2.5)
+    plt.grid()
+    plt.axhline(y=0, linewidth=0.9, color="k")
+    ax = sns.lineplot(x=data[0], y=data[1], linewidth=LINEWIDTH)
+    plt.xlim(0)
+    plt.ylim((min(0, min(data[1]) - 0.5), max(0, max(data[1]) + 0.5)))
     plt.title("Progression of loss through episodes")
     plt.xlabel("Episode")
     plt.ylabel("Loss")
@@ -23,7 +30,11 @@ def loss_plot(data: list[list, list], filename: str):
 def reward_plot(rewards: list, filename: str):
     plt.figure(figsize=(10, 6), tight_layout=True)
     # plotting
-    ax = sns.lineplot(data=rewards, linewidth=2.5)
+    plt.grid()
+    plt.axhline(y=0, linewidth=0.9, color="k")
+    ax = sns.lineplot(data=rewards, linewidth=LINEWIDTH)
+    plt.xlim(0)
+    plt.ylim((min(0, min(rewards) - 0.5), max(0, max(rewards) + 0.5)))
     plt.title("Progression of rewards through episodes")
     plt.xlabel("Episode")
     plt.ylabel("Reward")
@@ -33,7 +44,11 @@ def reward_plot(rewards: list, filename: str):
 def action_distribution(actions: dict, filename: str):
     plt.figure(figsize=(10, 6), tight_layout=True)
     # plotting
-    ax = sns.lineplot(data=actions, linewidth=2.5)
+    plt.grid()
+    plt.axhline(y=0, linewidth=0.9, color="k")
+    ax = sns.lineplot(data=actions, linewidth=LINEWIDTH)
+    plt.xlim(0)
+    plt.ylim(0)
     plt.title("Action distribution through episodes")
     plt.xlabel("Episode")
     plt.ylabel("Count")
@@ -42,10 +57,14 @@ def action_distribution(actions: dict, filename: str):
 
 
 def separation_loss_plot(conflicts: list, los: list, filename: str):
-    ratio = [i / j for i, j in zip(conflicts, los)]
+    data = {"conflicts": conflicts, "LoS": los}
     plt.figure(figsize=(10, 6), tight_layout=True)
     # plotting
-    ax = sns.lineplot(data=ratio, linewidth=2.5)
+    plt.grid()
+    plt.axhline(y=0, linewidth=0.9, color="k")
+    ax = sns.lineplot(data=data, linewidth=LINEWIDTH)
+    plt.xlim(0)
+    plt.ylim(0)
     plt.title("Conflicts / loss of separation through episodes")
     plt.xlabel("Episode")
     plt.ylabel("conflict/LoS")
