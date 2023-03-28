@@ -16,7 +16,7 @@ from bluesky.plugins.atc_utils import dqn_util as du
 
 # LET OP: DE RIVER1D TRANSITION IS NU VERKORT MET EEN WAYPOINT!!!!!!!
 
-EXPERIMENT_NAME = "_two_transitions_cooldown_early_LoS_15_slow_decay_more_spacing_5nm"
+EXPERIMENT_NAME = "_two_transitions_cooldown_early_LoS_slow_decay_more_spacing_15_5nm_5forSep"
 
 EVAL_COOLDOWN = 4  # cooldown to let action take effect before applying reward
 

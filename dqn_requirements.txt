@@ -3,3 +3,4 @@ PyQt5
 tensorflow
 matplotlib
 seaborn
+scipy

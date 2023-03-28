@@ -49,7 +49,7 @@ def get_reward(ac1: str, ac2: str) -> int:
         N_LoS += 1
         return -5
     elif not pu.is_within_alert_distance(ac1, ac2):
-        return 1
+        return 5
     else:
         dist_ac = pu.get_distance_to_ac(ac1, ac2)
         dist_alert = pu.get_distance_to_alert_border()
