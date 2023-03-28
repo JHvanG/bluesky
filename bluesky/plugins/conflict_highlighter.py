@@ -57,9 +57,13 @@ def init_plugin():
 
 def update():
     for ac1, ac2 in list(combinations(traf.id, 2)):
+        print("checking {} and {}".format(ac1, ac2))
         if pu.is_loss_of_separation(ac1, ac2):
             stack.stack("COLOUR {} RED".format(ac1))
             stack.stack("COLOUR {} RED".format(ac2))
+        elif pu.is_within_alert_distance(ac1, ac2):
+            stack.stack("COLOUR {} BLUE".format(ac1))
+            stack.stack("COLOUR {} BLUE".format(ac2))
     pass
 
 

@@ -10,7 +10,8 @@ from bluesky.tools import geo
 FT_NM_FACTOR = 0.000164578834   # ft * factor converts to nm
 M_FT_FACTOR = 3.280839895       # m * factor converts to feet
 
-SEP_REP_HOR = 3.5               # report within 3.5 nm
+# TODO: change this
+SEP_REP_HOR = 5.0               # report within 5 nm (was 3.5 nm)
 SEP_REP_VER = 1500              # report within 1500 ft
 SEP_MIN_HOR = 3.0               # 3 nm is min sep
 SEP_MIN_VER = 1000              # 1000 ft is min sep

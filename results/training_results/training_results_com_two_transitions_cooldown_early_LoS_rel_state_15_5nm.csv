@@ -1,0 +1,4 @@
+episode,loss,average reward,conflicts,LoS,instructions,action LEFT,action RIGHT,action DIRECT,action LNAV,duration,epsilon
+1,,0.05864321774742377,26,14,102,38,34,0,30,71.32,1.0
+2,1.2980365753173828,-0.028268590452522613,20,10,74,29,16,0,31,71.39,0.905
+3,,0.5155305618710904,30,4,70,13,29,0,30,71.54,0.905

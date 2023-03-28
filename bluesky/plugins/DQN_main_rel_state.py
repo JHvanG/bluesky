@@ -1,25 +1,23 @@
-""" BlueSky plugin template. The text you put here will be visible
-    in BlueSky as the description of your plugin. """
+"""
+This is the main plugin for the DQN-based controller agent, using the center-of-mass, relative state definition.
+"""
 
 import os
 import csv
 import time
 
 # Import the global bluesky objects. Uncomment the ones you need
+from bluesky.tools import geo
 from bluesky import stack, traf
 
-from bluesky.plugins.atc_utils.state import State
-from bluesky.plugins.atc_utils.controller import Controller
+from bluesky.plugins.atc_utils.rel_state_utils.state import State
+from bluesky.plugins.atc_utils.rel_state_utils.controller import Controller
 from bluesky.plugins.atc_utils import prox_util as pu
+from bluesky.plugins.atc_utils import dqn_util as du
 
-# LET OP: DE RIVER1D TRANSITION IS NU VERKORT MET EEN WAYPOINT!!!!!!!
-
-EXPERIMENT_NAME = "_two_transitions_cooldown_early_LoS_15_slow_decay_more_spacing"
+EXPERIMENT_NAME = "_two_transitions_cooldown_early_LoS_rel_state_15_5nm"
 
 EVAL_COOLDOWN = 4  # cooldown to let action take effect before applying reward
-
-HDG_CHANGE = 15.0  # HDG change instruction deviates 15 degrees from original
-TOTAL_REWARD = 0  # storage for total obtained reward this episode
 
 EPISODE_COUNTER = 0  # counter to keep track of how many episodes have passed
 EPISODE_LIMIT = 4000  # limits the amount of episodes
@@ -29,23 +27,16 @@ TIME_LIMIT = 720  # 1440 updates equates to approximately 2 hours of simulation 
 CONFLICT_LIMIT = 50  # NOTE: rather randomly selected
 
 PREVIOUS_ACTIONS = []  # buffer for previous actions with the given state and the aircraft pair
-INSTRUCTED_AIRCRAFT = []  # list of aircraft that deviated from their flightpath
 KNOWN_CONFLICTS = []  # list of conflict pairs that have been counted to the conflict total
 CONFLICT_PAIRS = []  # list of aircraft that are currently in conflict with one another
 LoS_PAIRS = []  # list of aircraft that have currently lost separation
 
+TOTAL_REWARD = 0  # storage for total obtained reward this episode
 N_INSTRUCTIONS = 0  # counter for the number of instructions given
 N_CONFLICTS = 0  # counter for the number of conflicts that have been encountered
-N_LoS = 0  # counter for the number of separation losses
-N_LEFT = 0  # counter for the number of times action LEFT is selected
-N_RIGHT = 0  # counter for the number of times action RIGHT is selected
-N_DIR = 0  # counter for the number of times action DIR is selected
-N_LNAV = 0  # counter for the number of times action LNAV is selected
 
 TRAIN_INTERVAL = 2  # the number of episodes before retraining the network
 TARGET_INTERVAL = 100  # the number of episodes before updating the target network
-
-ROUTES = {"A": 1, "R": 2, "S": 3}
 
 CONTROLLER = Controller()  # atc agent based on a DQN
 
@@ -59,7 +50,7 @@ def init_plugin():
     # Configuration parameters
     config = {
         # The name of your plugin
-        'plugin_name': 'TESTPLUGIN',
+        'plugin_name': 'DQNRELATIVE',
 
         # The type of this plugin. For now, only simulation plugins are possible.
         'plugin_type': 'sim',
@@ -83,15 +74,15 @@ def init_plugin():
 
     stackfunctions = {
         # The command name for your function
-        'TESTPLUGIN': [
+        'DQNRELATIVE': [
             # A short usage string. This will be printed if you type HELP <name> in the BlueSky console
-            'TESTPLUGIN argument',
+            'DQNRELATIVE argument',
 
             # A list of the argument types your function accepts. For a description of this, see ...
             'txt',
 
             # The name of your function in this plugin
-            testplugin,
+            dqn_main_relative,
 
             # a longer help text of your function.
             'First test plugin to help with plugin development.']
@@ -105,45 +96,25 @@ def init_plugin():
 
 
 # TODO: can this be removed?
-def get_next_two_waypoints(idx: int) -> (str, str):
-    """
-    Function that returns the next two waypoints of an aircraft, or doubles the only waypoint if there is just one.
-
-    :param idx: index of the aircraft
-    :return:
-    """
-    if not traf.ap.route[idx].wpname:
-        # TODO: remove this temporary fix when up and running!
-        return "EH007", "EH007"
-    else:
-        cur = traf.ap.route[idx].wpname[0]
-
-    if len(traf.ap.route[idx].wpname) > 1:
-        nxt = traf.ap.route[idx].wpname[1]
-    else:
-        nxt = traf.ap.route[idx].wpname[0]
-
-    return cur, nxt
-
-
-def load_state_data(ac: str) -> (float, float, int, int, int):
-    """
-    This function gathers all data from one single aircraft that are required for a state definition.
-
-    :param ac: string containing aircraft id
-    :return: tuple of all data for one aircraft's state
-    """
-    idx = traf.id.index(ac)
-
-    lat = traf.lat[idx]
-    lon = traf.lon[idx]
-    alt = traf.alt[idx]
-    hdg = traf.hdg[idx]
-
-    # the route of an aircraft is defined by the last letter in its id
-    rte = ROUTES[ac[-1]]
-
-    return lat, lon, alt, hdg, rte
+# def get_next_two_waypoints(idx: int) -> (str, str):
+#     """
+#     Function that returns the next two waypoints of an aircraft, or doubles the only waypoint if there is just one.
+#
+#     :param idx: index of the aircraft
+#     :return:
+#     """
+#     if not traf.ap.route[idx].wpname:
+#         # TODO: remove this temporary fix when up and running!
+#         return "EH007", "EH007"
+#     else:
+#         cur = traf.ap.route[idx].wpname[0]
+#
+#     if len(traf.ap.route[idx].wpname) > 1:
+#         nxt = traf.ap.route[idx].wpname[1]
+#     else:
+#         nxt = traf.ap.route[idx].wpname[0]
+#
+#     return cur, nxt
 
 
 def get_current_state(ac1: str, ac2: str) -> State:
@@ -155,110 +126,112 @@ def get_current_state(ac1: str, ac2: str) -> State:
     :return: current state given the two aircraft
     """
 
-    lat1, lon1, alt1, hdg1, rte1 = load_state_data(ac1)
-    lat2, lon2, alt2, hdg2, rte2 = load_state_data(ac2)
-    com_lat, com_lon, com_hdg = pu.get_centre_of_mass(ac1)
+    lat1, lon1, alt1, hdg1, rte1 = du.load_state_data(ac1)
+    lat2, lon2, alt2, hdg2, rte2 = du.load_state_data(ac2)
+    com_bearing, com_dist, com_hdg = pu.get_centre_of_mass(ac1)
 
-    return State(lat1, lon1, alt1, hdg1, rte1,
-                 lat2, lon2, alt2, hdg2, rte2,
-                 com_lat, com_lon, com_hdg)
+    # TODO: verify that this is correct for the bearing
+    bearing, dist = geo.qdrdist(lat1, lon1, lat2, lon2)  # bearing, distance (nm)
 
-
-def get_reward(ac1: str, ac2: str) -> int:
-    """
-    This function returns the reward obtained from the action that was taken.
-
-    :param ac1: first aircraft in the conflict
-    :param ac2: second aircraft in the conflict
-    :return: integer reward
-    """
-
-    global N_LoS
-
-    if pu.is_loss_of_separation(ac1, ac2):
-        N_LoS += 1
-        return -5
-    elif not pu.is_within_alert_distance(ac1, ac2):
-        return 1
-    else:
-        dist_ac = pu.get_distance_to_ac(ac1, ac2)
-        dist_alert = pu.get_distance_to_alert_border()
-        return min(1, dist_ac / dist_alert)
+    return State(bearing, dist, alt1, hdg1, rte1, alt2, hdg2, rte2,
+                 com_bearing, com_dist, com_hdg)
 
 
-def engage_lnav(ac: str):
-    stack.stack(f"LNAV {ac} ON")
-    stack.stack(f"VNAV {ac} ON")
-    return
-
-
-def change_heading(ac: str, right: bool):
-    """
-    This function alters the heading of an aircraft by HDG_CHANGE degrees, keeping between 0 and 360 degrees.
-
-    :param ac: aircraft id string
-    :param right: boolean that is true when a right turn is required
-    """
-
-    if right:
-        hdg_change = HDG_CHANGE
-    else:
-        hdg_change = -1 * HDG_CHANGE
-
-    current_hdg = traf.hdg[traf.id.index(ac)]
-    hdg = (current_hdg + hdg_change) % 360
-
-    stack.stack(f"HDG {ac} {hdg}")
-
-    # if this aircraft has not received an instruction yet, add it to the instructed aircraft list
-    if ac not in INSTRUCTED_AIRCRAFT:
-        INSTRUCTED_AIRCRAFT.append(ac)
-
-    return
-
-
-def handle_instruction(ac: str, action: str):
-    """
-    This function checks what instruction was given and calls the appropriate functions to handle these instructions.
-
-    :param ac: aircraft id of aircraft that was given an instruction
-    :param action: action that needs to be taken
-    """
-
-    global N_LEFT
-    global N_RIGHT
-    global N_DIR
-    global N_LNAV
-
-    if action == "HDG_L":
-        N_LEFT += 1
-        change_heading(ac, False)
-    elif action == "HDG_R":
-        N_RIGHT += 1
-        change_heading(ac, True)
-    elif action == "LNAV":
-        N_LNAV += 1
-        engage_lnav(ac)
-
-
-def allow_resume_navigation(conflict_pairs):
-    """
-    This function checks whether aircraft that received a heading change are allowed to resume their own navigation.
-    """
-
-    global INSTRUCTED_AIRCRAFT
-
-    aircraft_to_keep = []
-
-    for ac in INSTRUCTED_AIRCRAFT:
-        if not [pair for pair in conflict_pairs if ac in pair[0]] and ac in traf.id:
-            engage_lnav(ac)
-        else:
-            aircraft_to_keep.append(ac)
-
-    INSTRUCTED_AIRCRAFT = aircraft_to_keep
-
-    return
+# def get_reward(ac1: str, ac2: str) -> int:
+#     """
+#     This function returns the reward obtained from the action that was taken.
+#
+#     :param ac1: first aircraft in the conflict
+#     :param ac2: second aircraft in the conflict
+#     :return: integer reward
+#     """
+#
+#     global N_LoS
+#
+#     if pu.is_loss_of_separation(ac1, ac2):
+#         N_LoS += 1
+#         return -5
+#     elif not pu.is_within_alert_distance(ac1, ac2):
+#         return 1
+#     else:
+#         dist_ac = pu.get_distance_to_ac(ac1, ac2)
+#         dist_alert = pu.get_distance_to_alert_border()
+#         return min(1, dist_ac / dist_alert)
+#
+#
+# def engage_lnav(ac: str):
+#     stack.stack(f"LNAV {ac} ON")
+#     stack.stack(f"VNAV {ac} ON")
+#     return
+#
+#
+# def change_heading(ac: str, right: bool):
+#     """
+#     This function alters the heading of an aircraft by HDG_CHANGE degrees, keeping between 0 and 360 degrees.
+#
+#     :param ac: aircraft id string
+#     :param right: boolean that is true when a right turn is required
+#     """
+#
+#     if right:
+#         hdg_change = HDG_CHANGE
+#     else:
+#         hdg_change = -1 * HDG_CHANGE
+#
+#     current_hdg = traf.hdg[traf.id.index(ac)]
+#     hdg = (current_hdg + hdg_change) % 360
+#
+#     stack.stack(f"HDG {ac} {hdg}")
+#
+#     # if this aircraft has not received an instruction yet, add it to the instructed aircraft list
+#     if ac not in INSTRUCTED_AIRCRAFT:
+#         INSTRUCTED_AIRCRAFT.append(ac)
+#
+#     return
+#
+#
+# def handle_instruction(ac: str, action: str):
+#     """
+#     This function checks what instruction was given and calls the appropriate functions to handle these instructions.
+#
+#     :param ac: aircraft id of aircraft that was given an instruction
+#     :param action: action that needs to be taken
+#     """
+#
+#     global N_LEFT
+#     global N_RIGHT
+#     global N_DIR
+#     global N_LNAV
+#
+#     if action == "HDG_L":
+#         N_LEFT += 1
+#         change_heading(ac, False)
+#     elif action == "HDG_R":
+#         N_RIGHT += 1
+#         change_heading(ac, True)
+#     elif action == "LNAV":
+#         N_LNAV += 1
+#         engage_lnav(ac)
+#
+#
+# def allow_resume_navigation(conflict_pairs):
+#     """
+#     This function checks whether aircraft that received a heading change are allowed to resume their own navigation.
+#     """
+#
+#     global INSTRUCTED_AIRCRAFT
+#
+#     aircraft_to_keep = []
+#
+#     for ac in INSTRUCTED_AIRCRAFT:
+#         if not [pair for pair in conflict_pairs if ac in pair[0]] and ac in traf.id:
+#             engage_lnav(ac)
+#         else:
+#             aircraft_to_keep.append(ac)
+#
+#     INSTRUCTED_AIRCRAFT = aircraft_to_keep
+#
+#     return
 
 
 def write_episode_info(loss: float, avg_reward: float):
@@ -284,12 +257,12 @@ def write_episode_info(loss: float, avg_reward: float):
             "loss": loss,
             "average reward": avg_reward,
             "conflicts": N_CONFLICTS,
-            "LoS": N_LoS,
+            "LoS": du.N_LoS,
             "instructions": N_INSTRUCTIONS,
-            "action LEFT": N_LEFT,
-            "action RIGHT": N_RIGHT,
-            "action DIRECT": N_DIR,
-            "action LNAV": N_LNAV,
+            "action LEFT": du.N_LEFT,
+            "action RIGHT": du.N_RIGHT,
+            "action DIRECT": du.N_DIR,
+            "action LNAV": du.N_LNAV,
             "duration": elapsed_time,
             "epsilon": epsilon
             }
@@ -357,7 +330,6 @@ def update():
     global TOTAL_REWARD
     global N_INSTRUCTIONS
     global N_CONFLICTS
-    global N_LoS
     global PREVIOUS_ACTIONS
 
     if TIMER == 0:
@@ -388,10 +360,15 @@ def update():
                 current_state = get_current_state(ac1, ac2)
 
                 # the reward is based on the current state, so can be taken directly from info of the simulator
-                reward = get_reward(ac1, ac2)
+                # TODO: TEST THIS
+                reward = du.get_reward(ac1, ac2)
                 TOTAL_REWARD += reward
 
                 CONTROLLER.store_experiences(prev_state, action, reward, current_state)
+
+                # update number of provided instructions
+                N_INSTRUCTIONS += 1
+
                 # TODO: do I need to remove from instructed aircraft? No right as this would be taken care of
 
         # keep actions that were still in cooldown
@@ -402,7 +379,7 @@ def update():
     current_conflict_pairs = pu.get_conflict_pairs()  # list of tuples
 
     # aircraft not in current conflicts that received instructions can return to their flightplans
-    allow_resume_navigation(current_conflict_pairs)
+    du.allow_resume_navigation(current_conflict_pairs)
 
     for (ac1, ac2) in current_conflict_pairs:
 
@@ -416,13 +393,10 @@ def update():
             # instruct aircraft
             state = get_current_state(ac1, ac2)
             action = CONTROLLER.act(state)
-            handle_instruction(ac1, action)
+            du.handle_instruction(ac1, action)
 
             # previous actions are maintained to apply rewards in the next state
             PREVIOUS_ACTIONS.append((state, action, ac1, ac2, 0))
-
-            # update number of provided instructions
-            N_INSTRUCTIONS += 1
 
     return
 
@@ -435,7 +409,6 @@ def reset():
     print("Plugin reset at: {}".format(time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time()))))
     print("resetting main plugin")
 
-    global INSTRUCTED_AIRCRAFT
     global PREVIOUS_ACTIONS
     global CONFLICT_PAIRS
     global LoS_PAIRS
@@ -444,18 +417,13 @@ def reset():
     global TOTAL_REWARD
     global N_INSTRUCTIONS
     global N_CONFLICTS
-    global N_LoS
-    global N_LEFT
-    global N_RIGHT
-    global N_DIR
-    global N_LNAV
     global TIMER
     global START
 
     EPISODE_COUNTER += 1
 
     print("Episode {} finished".format(EPISODE_COUNTER))
-    print("{} conflicts and {} losses of separation".format(N_CONFLICTS, N_LoS))
+    print("{} conflicts and {} losses of separation".format(N_CONFLICTS, du.N_LoS))
 
     # TODO: if condition met call train function after n restarts
     if EPISODE_COUNTER % TRAIN_INTERVAL == 0:
@@ -465,14 +433,13 @@ def reset():
         if EPISODE_COUNTER % TARGET_INTERVAL == 0:
             CONTROLLER.update_target_model()
 
-        avg_reward = TOTAL_REWARD / (N_LEFT + N_RIGHT + N_DIR + N_LNAV)
+        avg_reward = TOTAL_REWARD / N_INSTRUCTIONS
         write_episode_info(loss[0], avg_reward)
     else:
-        avg_reward = TOTAL_REWARD / (N_LEFT + N_RIGHT + N_DIR + N_LNAV)
+        avg_reward = TOTAL_REWARD / N_INSTRUCTIONS
         write_episode_info(None, avg_reward)
 
     # reset all global variables
-    INSTRUCTED_AIRCRAFT = []
     PREVIOUS_ACTIONS = []
     CONFLICT_PAIRS = []
     LoS_PAIRS = []
@@ -480,16 +447,12 @@ def reset():
     TOTAL_REWARD = 0
     N_INSTRUCTIONS = 0
     N_CONFLICTS = 0
-    N_LoS = 0
-    N_LEFT = 0
-    N_RIGHT = 0
-    N_DIR = 0
-    N_LNAV = 0
     TIMER = 0
     START = 0
 
+    du.reset_variables()
+
     if EPISODE_COUNTER == EPISODE_LIMIT:
-        # TODO: make graphs of results
         print("Reached stopping condition")
         print("Epsilons: {}".format(CONTROLLER.epsilons))
         stack.stack("STOP")
@@ -501,7 +464,7 @@ def reset():
 
 
 ### Other functions of your plugin
-def testplugin(argument):
+def dqn_main_relative(argument):
     """
     I doubt we need this function. This is purely for initialization
 

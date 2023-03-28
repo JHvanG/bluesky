@@ -6,7 +6,7 @@ from tensorflow import keras
 from keras import Sequential
 from keras.layers import Dense, Input
 
-from bluesky.plugins.atc_utils.state import State
+from bluesky.plugins.atc_utils.rel_state_utils.state import State
 from bluesky.plugins.atc_utils.replay_buffer import ReplayBuffer
 
 
@@ -20,10 +20,10 @@ class Controller(object):
         terms of network-related processes.
         """
         # Config parameters
-        self.epsilon = 1.0  # exploration parameter
+        self.epsilon = 1.0      # exploration parameter
         self.max_epsilon = 1.0
         self.min_epsilon = 0.05
-        self.epsilon_decay = 0.005
+        self.epsilon_decay = 0.1
         self.epsilons = [self.epsilon]
         self.replay_buffer = ReplayBuffer()
         self.encoding = {"HDG_L": 0, "HDG_R": 1, "LNAV": 2}
@@ -73,6 +73,9 @@ class Controller(object):
         :param state: current state of the two aircraft in conflict.
         :return: two strings containing the actions to be taken.
         """
+
+        # print("Predicting on: {}".format(state.get_state_as_list()))
+
         # exploration
         if random.random() < self.epsilon:
             # TODO: only do this when training
@@ -124,7 +127,7 @@ class Controller(object):
         """
 
         q_net = Sequential()
-        q_net.add(Dense(64, input_dim=13, activation='relu', kernel_initializer='he_uniform'))
+        q_net.add(Dense(64, input_dim=11, activation='relu', kernel_initializer='he_uniform'))
         q_net.add(Dense(32, activation='relu', kernel_initializer='he_uniform'))
         q_net.add(Dense(3, activation='sigmoid', kernel_initializer='he_uniform'))
         q_net.compile(loss="mse", optimizer=tf.optimizers.Adam(learning_rate=0.001))

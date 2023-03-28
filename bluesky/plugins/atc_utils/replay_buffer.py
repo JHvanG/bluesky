@@ -1,7 +1,7 @@
 import random
 import numpy as np
 from collections import deque
-from bluesky.plugins.atc_utils.state import State
+from bluesky.plugins.atc_utils.main_utils.state import State
 
 
 class ReplayBuffer(object):
