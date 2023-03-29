@@ -2,7 +2,7 @@ from bluesky import stack, traf
 from bluesky.plugins.atc_utils import prox_util as pu
 
 
-HDG_CHANGE = 15.0  # HDG change instruction deviates 15 degrees from original
+HDG_CHANGE = 45.0  # HDG change instruction deviates 15 degrees from original
 
 N_LoS = 0  # counter for the number of separation losses
 N_LEFT = 0  # counter for the number of times action LEFT is selected

@@ -9,6 +9,7 @@ from bluesky.tools import geo
 
 FT_NM_FACTOR = 0.000164578834   # ft * factor converts to nm
 M_FT_FACTOR = 3.280839895       # m * factor converts to feet
+MS_KT_FACTOR = 1.94384449
 
 # TODO: change this
 SEP_REP_HOR = 5.0               # report within 5 nm (was 3.5 nm)
@@ -23,6 +24,10 @@ def m_to_ft(alt: int) -> int:
 
 def ft_to_nm(alt: int) -> float:
     return alt * FT_NM_FACTOR
+
+
+def ms_to_kt(spd: float) -> float:
+    return spd * MS_KT_FACTOR
 
 
 def get_lat(ac):

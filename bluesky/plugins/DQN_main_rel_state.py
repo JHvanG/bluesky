@@ -15,7 +15,7 @@ from bluesky.plugins.atc_utils.rel_state_utils.controller import Controller
 from bluesky.plugins.atc_utils import prox_util as pu
 from bluesky.plugins.atc_utils import dqn_util as du
 
-EXPERIMENT_NAME = "_rel_state_two_transitions_cooldown_early_LoS_slow_decay_more_spacing_15_5nm_5forSep"
+EXPERIMENT_NAME = "_rel_state_two_transitions_cooldown_early_LoS_slow_decay_more_spacing_45_5nm_5forSep"
 
 EVAL_COOLDOWN = 4  # cooldown to let action take effect before applying reward
 
