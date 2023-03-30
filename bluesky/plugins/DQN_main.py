@@ -17,6 +17,7 @@ from bluesky.plugins.atc_utils import dqn_util as du
 # LET OP: DE RIVER1D TRANSITION IS NU VERKORT MET EEN WAYPOINT!!!!!!!
 
 EXPERIMENT_NAME = "_two_transitions_cooldown_early_LoS_slow_decay_more_spacing_45_5nm_5forSep"
+SAVE_RESULTS = True
 
 EVAL_COOLDOWN = 4  # cooldown to let action take effect before applying reward
 
@@ -240,6 +241,9 @@ def write_episode_info(loss: float, avg_reward: float):
     :param loss: loss from training the network
     :param avg_reward: average reward during this episode
     """
+
+    if not SAVE_RESULTS:
+        return
 
     workdir = os.getcwd()
     path = os.path.join(workdir, "results/training_results/")

@@ -15,7 +15,8 @@ from bluesky.plugins.atc_utils.rel_state_utils.controller import Controller
 from bluesky.plugins.atc_utils import prox_util as pu
 from bluesky.plugins.atc_utils import dqn_util as du
 
-EXPERIMENT_NAME = "_rel_state_two_transitions_cooldown_early_LoS_slow_decay_more_spacing_45_5nm_5forSep"
+EXPERIMENT_NAME = "_rel_state_two_transitions_cooldown_early_LoS_slow_decay_165spacing_45_5nm_5forSep"
+SAVE_RESULTS = True
 
 EVAL_COOLDOWN = 4  # cooldown to let action take effect before applying reward
 
@@ -242,6 +243,9 @@ def write_episode_info(loss: float, avg_reward: float):
     :param avg_reward: average reward during this episode
     """
 
+    if not SAVE_RESULTS:
+        return
+
     workdir = os.getcwd()
     path = os.path.join(workdir, "results/training_results/")
     file = path + "training_results_com" + EXPERIMENT_NAME + ".csv"
@@ -397,6 +401,8 @@ def update():
 
             # previous actions are maintained to apply rewards in the next state
             PREVIOUS_ACTIONS.append((state, action, ac1, ac2, 0))
+
+    print("After this update, the following conflicts are known: {}".format(KNOWN_CONFLICTS))
 
     return
 
