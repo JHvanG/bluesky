@@ -1,5 +1,4 @@
-bluesky-simulator[full]
-PyQt5
+bluesky-simulator[qt5]
 tensorflow
 matplotlib
 seaborn
