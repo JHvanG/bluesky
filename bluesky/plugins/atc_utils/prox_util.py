@@ -56,7 +56,6 @@ def both_aircraft_exits(ac1: str, ac2: str) -> bool:
     if ac1 in traf.id and ac2 in traf.id:
         return True
     else:
-        print("one or both aircraft despawned!")
         return False
 
 
@@ -179,11 +178,13 @@ def get_distance_to_alert_border():
     return direct_distance(SEP_REP_HOR, SEP_REP_VER)
 
 
-def get_conflict_pairs() -> list[tuple[str, str]]:
+def get_conflict_pairs(conflicts_in_cooldown: list[str]) -> list[tuple[str, str]]:
     """
     This functions returns a list of pairs that are within alerting distance of each other. If there are more, then the
     closest is selected. Aircraft that have lost separation are excluded.
 
+    :param conflicts_in_cooldown: a list of aircraft pairs that have sustained a loss of separation and can therefore
+                                    not be included until they have completely separated.
     :return: list of aircraft ID pairs (strings)
     """
 
@@ -195,7 +196,8 @@ def get_conflict_pairs() -> list[tuple[str, str]]:
 
         for ac2 in traf.id:
             # the ac's cannot be identical, have to be within alerting distance, but not in a loss of separation
-            if not ac1 == ac2 and not is_loss_of_separation(ac1, ac2) and is_within_alert_distance(ac1, ac2):
+            if not ac1 == ac2 and not is_loss_of_separation(ac1, ac2) and \
+                    is_within_alert_distance(ac1, ac2) and (ac1, ac2) not in conflicts_in_cooldown:
                 # the first pair fills in the values initially
                 if not current_shortest_dist:
                     current_shortest_dist = get_distance_to_ac(ac1, ac2)

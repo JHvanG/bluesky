@@ -28,9 +28,9 @@ TIMER = 0  # counter to keep track of how many update calls were made this episo
 TIME_LIMIT = 720  # 1440 updates equates to approximately 2 hours of simulation time
 CONFLICT_LIMIT = 50  # NOTE: rather randomly selected
 
+CONFLICTS_IN_COOLDOWN = []  # list of aircraft that are currently in conflict with one another
 PREVIOUS_ACTIONS = []  # buffer for previous actions with the given state and the aircraft pair
 KNOWN_CONFLICTS = []  # list of conflict pairs that have been counted to the conflict total
-CONFLICT_PAIRS = []  # list of aircraft that are currently in conflict with one another
 LoS_PAIRS = []  # list of aircraft that have currently lost separation
 
 TOTAL_REWARD = 0  # storage for total obtained reward this episode
@@ -97,28 +97,6 @@ def init_plugin():
     return config, stackfunctions
 
 
-# # TODO: can this be removed?
-# def get_next_two_waypoints(idx: int) -> (str, str):
-#     """
-#     Function that returns the next two waypoints of an aircraft, or doubles the only waypoint if there is just one.
-#
-#     :param idx: index of the aircraft
-#     :return:
-#     """
-#     if not traf.ap.route[idx].wpname:
-#         # TODO: remove this temporary fix when up and running!
-#         return "EH007", "EH007"
-#     else:
-#         cur = traf.ap.route[idx].wpname[0]
-#
-#     if len(traf.ap.route[idx].wpname) > 1:
-#         nxt = traf.ap.route[idx].wpname[1]
-#     else:
-#         nxt = traf.ap.route[idx].wpname[0]
-#
-#     return cur, nxt
-
-
 def get_current_state(ac1: str, ac2: str) -> State:
     """
     This function returns all information required to build a state.
@@ -135,103 +113,6 @@ def get_current_state(ac1: str, ac2: str) -> State:
     return State(lat1, lon1, alt1, hdg1, rte1,
                  lat2, lon2, alt2, hdg2, rte2,
                  com_lat, com_lon, com_hdg)
-
-
-# def get_reward(ac1: str, ac2: str) -> int:
-#     """
-#     This function returns the reward obtained from the action that was taken.
-#
-#     :param ac1: first aircraft in the conflict
-#     :param ac2: second aircraft in the conflict
-#     :return: integer reward
-#     """
-#
-#     global N_LoS
-#
-#     if pu.is_loss_of_separation(ac1, ac2):
-#         N_LoS += 1
-#         return -5
-#     elif not pu.is_within_alert_distance(ac1, ac2):
-#         return 1
-#     else:
-#         dist_ac = pu.get_distance_to_ac(ac1, ac2)
-#         dist_alert = pu.get_distance_to_alert_border()
-#         return min(1, dist_ac / dist_alert)
-#
-#
-# def engage_lnav(ac: str):
-#     stack.stack(f"LNAV {ac} ON")
-#     stack.stack(f"VNAV {ac} ON")
-#     return
-#
-#
-# def change_heading(ac: str, right: bool):
-#     """
-#     This function alters the heading of an aircraft by HDG_CHANGE degrees, keeping between 0 and 360 degrees.
-#
-#     :param ac: aircraft id string
-#     :param right: boolean that is true when a right turn is required
-#     """
-#
-#     if right:
-#         hdg_change = HDG_CHANGE
-#     else:
-#         hdg_change = -1 * HDG_CHANGE
-#
-#     current_hdg = traf.hdg[traf.id.index(ac)]
-#     hdg = (current_hdg + hdg_change) % 360
-#
-#     stack.stack(f"HDG {ac} {hdg}")
-#
-#     # if this aircraft has not received an instruction yet, add it to the instructed aircraft list
-#     if ac not in INSTRUCTED_AIRCRAFT:
-#         INSTRUCTED_AIRCRAFT.append(ac)
-#
-#     return
-#
-#
-# def handle_instruction(ac: str, action: str):
-#     """
-#     This function checks what instruction was given and calls the appropriate functions to handle these instructions.
-#
-#     :param ac: aircraft id of aircraft that was given an instruction
-#     :param action: action that needs to be taken
-#     """
-#
-#     global N_LEFT
-#     global N_RIGHT
-#     global N_DIR
-#     global N_LNAV
-#
-#     if action == "HDG_L":
-#         N_LEFT += 1
-#         change_heading(ac, False)
-#     elif action == "HDG_R":
-#         N_RIGHT += 1
-#         change_heading(ac, True)
-#     elif action == "LNAV":
-#         N_LNAV += 1
-#         engage_lnav(ac)
-#
-#
-# def allow_resume_navigation(conflict_pairs):
-#     """
-#     This function checks whether aircraft that received a heading change are allowed to resume their own navigation.
-#     """
-#
-#     global INSTRUCTED_AIRCRAFT
-#
-#     aircraft_to_keep = []
-#
-#     for ac in INSTRUCTED_AIRCRAFT:
-#         if not [pair for pair in conflict_pairs if ac in pair[0]] and ac in traf.id:
-#             engage_lnav(ac)
-#         else:
-#             aircraft_to_keep.append(ac)
-#
-#     INSTRUCTED_AIRCRAFT = aircraft_to_keep
-#
-#     return
 
 
 def write_episode_info(loss: float, avg_reward: float):
@@ -284,14 +165,19 @@ def write_episode_info(loss: float, avg_reward: float):
     return
 
 
-def update_known_conflicts():
+def update_stored_conflicts():
     """
-    This function removes any conflicts that have been counted and are no longer occurring.
+    This function removes any conflicts that have been counted and are no longer occurring, as well as removing any
+    conflict that resulted in a loss of separation where the planes have now separated beyond alerting distance.
     """
 
     for (ac1, ac2) in KNOWN_CONFLICTS:
         if not pu.is_within_alert_distance(ac1, ac2):
             KNOWN_CONFLICTS.remove((ac1, ac2))
+
+    for (ac1, ac2) in CONFLICTS_IN_COOLDOWN:
+        if not pu.is_within_alert_distance(ac1, ac2):
+            CONFLICTS_IN_COOLDOWN.remove((ac1, ac2))
 
     return
 
@@ -345,7 +231,7 @@ def update():
         stack.stack("RESET")
         return
 
-    update_known_conflicts()
+    update_stored_conflicts()
 
     # first check if an instruction was given at t - 1, then the experience buffer needs to be updated
     if PREVIOUS_ACTIONS:
@@ -358,14 +244,14 @@ def update():
             if cooldown < EVAL_COOLDOWN and not pu.is_loss_of_separation(ac1, ac2):
                 actions_in_cooldown.append((prev_state, action, ac1, ac2, cooldown + 1))
             elif ac1 in traf.id and ac2 in traf.id:
-                if cooldown < EVAL_COOLDOWN:
-                    print("{} has lost separation before cooldown ends".format(ac1))
                 current_state = get_current_state(ac1, ac2)
 
                 # the reward is based on the current state, so can be taken directly from info of the simulator
-                # TODO: TEST THIS
-                reward = du.get_reward(ac1, ac2)
+                LoS, reward = du.get_reward(ac1, ac2)
                 TOTAL_REWARD += reward
+
+                if LoS:
+                    CONFLICTS_IN_COOLDOWN.append((ac1, ac2))
 
                 CONTROLLER.store_experiences(prev_state, action, reward, current_state)
 
@@ -379,7 +265,7 @@ def update():
             PREVIOUS_ACTIONS = actions_in_cooldown
 
     # this variable contains all the closest conflict pairs
-    current_conflict_pairs = pu.get_conflict_pairs()  # list of tuples
+    current_conflict_pairs = pu.get_conflict_pairs(CONFLICTS_IN_COOLDOWN)  # list of tuples
 
     # aircraft not in current conflicts that received instructions can return to their flightplans
     du.allow_resume_navigation(current_conflict_pairs)
@@ -412,8 +298,8 @@ def reset():
     print("Plugin reset at: {}".format(time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time()))))
     print("resetting main plugin")
 
+    global CONFLICTS_IN_COOLDOWN
     global PREVIOUS_ACTIONS
-    global CONFLICT_PAIRS
     global LoS_PAIRS
 
     global EPISODE_COUNTER
@@ -443,8 +329,8 @@ def reset():
         write_episode_info(None, avg_reward)
 
     # reset all global variables
+    CONFLICTS_IN_COOLDOWN = []
     PREVIOUS_ACTIONS = []
-    CONFLICT_PAIRS = []
     LoS_PAIRS = []
     TOTAL_REWARD = 0
     N_INSTRUCTIONS = 0
