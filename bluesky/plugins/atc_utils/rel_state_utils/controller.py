@@ -8,6 +8,7 @@ from keras.layers import Dense, Input
 
 from bluesky.plugins.atc_utils.rel_state_utils.state import State
 from bluesky.plugins.atc_utils.replay_buffer import ReplayBuffer
+from bluesky.plugins.atc_utils.settings import MAX_EPSILON, MIN_EPSILON, EPSILON_DECAY
 
 
 class Controller(object):
@@ -19,11 +20,12 @@ class Controller(object):
         Initialization of the Controller Agent. This class contains all essentials to operate the DRL based plugin in
         terms of network-related processes.
         """
+
         # Config parameters
         self.epsilon = 1.0  # exploration parameter
-        self.max_epsilon = 1.0
-        self.min_epsilon = 0.05
-        self.epsilon_decay = 0.005
+        self.max_epsilon = MAX_EPSILON
+        self.min_epsilon = MIN_EPSILON
+        self.epsilon_decay = EPSILON_DECAY
         self.epsilons = [self.epsilon]
         self.replay_buffer = ReplayBuffer()
         self.encoding = {"HDG_L": 0, "HDG_R": 1, "LNAV": 2}

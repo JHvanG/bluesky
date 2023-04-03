@@ -1,22 +1,24 @@
+import os
+import csv
 from bluesky import stack, traf
 from bluesky.plugins.atc_utils import prox_util as pu
+from bluesky.plugins.atc_utils.settings import HDG_CHANGE, SAVE_RESULTS
 
 
-HDG_CHANGE = 45.0  # HDG change instruction deviates 15 degrees from original
+N_INSTRUCTIONS = 0          # counter for the number of instructions given
+N_LoS = 0                   # counter for the number of separation losses
+N_LEFT = 0                  # counter for the number of times action LEFT is selected
+N_RIGHT = 0                 # counter for the number of times action RIGHT is selected
+N_DIR = 0                   # counter for the number of times action DIR is selected
+N_LNAV = 0                  # counter for the number of times action LNAV is selected
 
-N_LoS = 0  # counter for the number of separation losses
-N_LEFT = 0  # counter for the number of times action LEFT is selected
-N_RIGHT = 0  # counter for the number of times action RIGHT is selected
-N_DIR = 0  # counter for the number of times action DIR is selected
-N_LNAV = 0  # counter for the number of times action LNAV is selected
-
-INSTRUCTED_AIRCRAFT = []  # list of aircraft that deviated from their flightpath
+INSTRUCTED_AIRCRAFT = []    # list of aircraft that deviated from their flightpath
 
 ROUTES = {"A": 1, "R": 2, "S": 3}
 
 
-
 def reset_variables():
+    global N_INSTRUCTIONS
     global N_LoS
     global N_LEFT
     global N_RIGHT
@@ -24,13 +26,14 @@ def reset_variables():
     global N_LNAV
     global INSTRUCTED_AIRCRAFT
 
-    N_LoS = 0  # counter for the number of separation losses
-    N_LEFT = 0  # counter for the number of times action LEFT is selected
-    N_RIGHT = 0  # counter for the number of times action RIGHT is selected
-    N_DIR = 0  # counter for the number of times action DIR is selected
-    N_LNAV = 0  # counter for the number of times action LNAV is selected
+    N_INSTRUCTIONS = 0
+    N_LoS = 0
+    N_LEFT = 0
+    N_RIGHT = 0
+    N_DIR = 0
+    N_LNAV = 0
+    INSTRUCTED_AIRCRAFT = []
 
-    INSTRUCTED_AIRCRAFT = []  # list of aircraft that deviated from their flightpath
     return
 
 
@@ -44,6 +47,9 @@ def get_reward(ac1: str, ac2: str) -> (bool, float):
     """
 
     global N_LoS
+    global N_INSTRUCTIONS
+
+    N_INSTRUCTIONS += 1
 
     if pu.is_loss_of_separation(ac1, ac2):
         N_LoS += 1
@@ -148,3 +154,46 @@ def load_state_data(ac: str) -> (float, float, int, int, int):
     rte = ROUTES[ac[-1]]
 
     return lat, lon, alt, hdg, rte
+
+
+def write_episode_info(data: dict, experiment_name):
+    """
+    This function simply keeps track of what occured during every episode, saving the actions, loss, conflicts and LoS.
+
+    :param data: episode counter, loss, average reward, n_conflicts, elapsed time and epsilon
+    :param experiment_name: string of the experiment name
+    """
+
+    if not SAVE_RESULTS:
+        return
+
+    workdir = os.getcwd()
+    path = os.path.join(workdir, "results/training_results/")
+    file = path + "training_results_com" + experiment_name + ".csv"
+
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+    action_data = {
+            "LoS": N_LoS,
+            "instructions": N_INSTRUCTIONS,
+            "action LEFT": N_LEFT,
+            "action RIGHT": N_RIGHT,
+            "action DIRECT": N_DIR,
+            "action LNAV": N_LNAV
+            }
+
+    contents = data | action_data
+
+    file_exists = os.path.isfile(file)
+
+    with open(file, 'a') as f:
+        headers = list(contents.keys())
+        writer = csv.DictWriter(f, delimiter=',', lineterminator='\n', fieldnames=headers)
+
+        if not file_exists:
+            writer.writeheader()
+
+        writer.writerow(data)
+
+    return

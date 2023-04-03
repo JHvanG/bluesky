@@ -14,32 +14,27 @@ from bluesky.plugins.atc_utils.rel_state_utils.state import State
 from bluesky.plugins.atc_utils.rel_state_utils.controller import Controller
 from bluesky.plugins.atc_utils import prox_util as pu
 from bluesky.plugins.atc_utils import dqn_util as du
+from bluesky.plugins.atc_utils.settings import SAVE_RESULTS, EVAL_COOLDOWN, EPISODE_LIMIT, TIME_LIMIT, \
+                                                CONFLICT_LIMIT, TRAIN_INTERVAL, TARGET_INTERVAL, \
+                                                HDG_CHANGE, SEP_REP_HOR, EPSILON_DECAY
 
-EXPERIMENT_NAME = "_rel_state_two_transitions_cooldown_early_LoS_slow_decay_165spacing_45_5nm_5forSep"
-SAVE_RESULTS = True
+# LET OP: DE RIVER1D TRANSITION IS NU VERKORT MET EEN WAYPOINT!!!!!!!
 
-EVAL_COOLDOWN = 4  # cooldown to let action take effect before applying reward
+EXPERIMENT_NAME = "_two_transitions_spaced_{}deg_{}nm_{}decay".format(HDG_CHANGE, SEP_REP_HOR, EPSILON_DECAY).replace(".", "_")
 
-EPISODE_COUNTER = 0  # counter to keep track of how many episodes have passed
-EPISODE_LIMIT = 4000  # limits the amount of episodes
-START = 0  # start time
-TIMER = 0  # counter to keep track of how many update calls were made this episode
-TIME_LIMIT = 720  # 1440 updates equates to approximately 2 hours of simulation time
-CONFLICT_LIMIT = 50  # NOTE: rather randomly selected
+EPISODE_COUNTER = 0                     # counter to keep track of how many episodes have passed
+START = 0                               # start time
+TIMER = 0                               # counter to keep track of how many update calls were made this episode
 
-CONFLICTS_IN_COOLDOWN = []  # list of aircraft that are currently in conflict with one another
-PREVIOUS_ACTIONS = []  # buffer for previous actions with the given state and the aircraft pair
-KNOWN_CONFLICTS = []  # list of conflict pairs that have been counted to the conflict total
-LoS_PAIRS = []  # list of aircraft that have currently lost separation
+CONFLICTS_IN_COOLDOWN = []              # list of aircraft that are currently in conflict with one another
+PREVIOUS_ACTIONS = []                   # buffer for previous actions with the given state and the aircraft pair
+KNOWN_CONFLICTS = []                    # list of conflict pairs that have been counted to the conflict total
+LoS_PAIRS = []                          # list of aircraft that have currently lost separation
 
-TOTAL_REWARD = 0  # storage for total obtained reward this episode
-N_INSTRUCTIONS = 0  # counter for the number of instructions given
-N_CONFLICTS = 0  # counter for the number of conflicts that have been encountered
+TOTAL_REWARD = 0                        # storage for total obtained reward this episode
+N_CONFLICTS = 0                         # counter for the number of conflicts that have been encountered
 
-TRAIN_INTERVAL = 2  # the number of episodes before retraining the network
-TARGET_INTERVAL = 100  # the number of episodes before updating the target network
-
-CONTROLLER = Controller()  # atc agent based on a DQN
+CONTROLLER = Controller()               # atc agent based on a DQN
 
 
 ### Initialization function of your plugin. Do not change the name of this
@@ -116,56 +111,6 @@ def get_current_state(ac1: str, ac2: str) -> State:
                  com_bearing, com_dist, com_hdg)
 
 
-def write_episode_info(loss: float, avg_reward: float):
-    """
-    This function simply keeps track of what occured during every episode, saving the actions, loss, conflicts and LoS.
-
-    :param loss: loss from training the network
-    :param avg_reward: average reward during this episode
-    """
-
-    if not SAVE_RESULTS:
-        return
-
-    workdir = os.getcwd()
-    path = os.path.join(workdir, "results/training_results/")
-    file = path + "training_results_com" + EXPERIMENT_NAME + ".csv"
-
-    if not os.path.exists(path):
-        os.makedirs(path)
-
-    elapsed_time = round(time.time() - START, 2)
-
-    epsilon = CONTROLLER.epsilon
-
-    data = {"episode": EPISODE_COUNTER,
-            "loss": loss,
-            "average reward": avg_reward,
-            "conflicts": N_CONFLICTS,
-            "LoS": du.N_LoS,
-            "instructions": N_INSTRUCTIONS,
-            "action LEFT": du.N_LEFT,
-            "action RIGHT": du.N_RIGHT,
-            "action DIRECT": du.N_DIR,
-            "action LNAV": du.N_LNAV,
-            "duration": elapsed_time,
-            "epsilon": epsilon
-            }
-
-    file_exists = os.path.isfile(file)
-
-    with open(file, 'a') as f:
-        headers = list(data.keys())
-        writer = csv.DictWriter(f, delimiter=',', lineterminator='\n', fieldnames=headers)
-
-        if not file_exists:
-            writer.writeheader()
-
-        writer.writerow(data)
-
-    return
-
-
 def update_stored_conflicts():
     """
     This function removes any conflicts that have been counted and are no longer occurring, as well as removing any
@@ -217,7 +162,6 @@ def update():
     global TIMER
     global START
     global TOTAL_REWARD
-    global N_INSTRUCTIONS
     global N_CONFLICTS
     global PREVIOUS_ACTIONS
 
@@ -254,11 +198,6 @@ def update():
                     CONFLICTS_IN_COOLDOWN.append((ac1, ac2))
 
                 CONTROLLER.store_experiences(prev_state, action, reward, current_state)
-
-                # update number of provided instructions
-                N_INSTRUCTIONS += 1
-
-                # TODO: do I need to remove from instructed aircraft? No right as this would be taken care of
 
         # keep actions that were still in cooldown
         if actions_in_cooldown:
@@ -304,7 +243,6 @@ def reset():
 
     global EPISODE_COUNTER
     global TOTAL_REWARD
-    global N_INSTRUCTIONS
     global N_CONFLICTS
     global TIMER
     global START
@@ -314,7 +252,6 @@ def reset():
     print("Episode {} finished".format(EPISODE_COUNTER))
     print("{} conflicts and {} losses of separation".format(N_CONFLICTS, du.N_LoS))
 
-    # TODO: if condition met call train function after n restarts
     if EPISODE_COUNTER % TRAIN_INTERVAL == 0:
         loss = CONTROLLER.train(CONTROLLER.load_experiences())
         CONTROLLER.save_weights(name=EXPERIMENT_NAME)
@@ -322,11 +259,27 @@ def reset():
         if EPISODE_COUNTER % TARGET_INTERVAL == 0:
             CONTROLLER.update_target_model()
 
-        avg_reward = TOTAL_REWARD / N_INSTRUCTIONS
-        write_episode_info(loss[0], avg_reward)
+        data = {
+            "episode": EPISODE_COUNTER,
+            "loss": loss,
+            "average reward": TOTAL_REWARD / du.N_INSTRUCTIONS,
+            "conflicts": N_CONFLICTS,
+            "duration": round(time.time() - START, 2),
+            "epsilon": CONTROLLER.epsilon
+        }
+
+        du.write_episode_info(data, EXPERIMENT_NAME)
     else:
-        avg_reward = TOTAL_REWARD / N_INSTRUCTIONS
-        write_episode_info(None, avg_reward)
+        data = {
+            "episode": EPISODE_COUNTER,
+            "loss": None,
+            "average reward": TOTAL_REWARD / du.N_INSTRUCTIONS,
+            "conflicts": N_CONFLICTS,
+            "duration": round(time.time() - START, 2),
+            "epsilon": CONTROLLER.epsilon
+        }
+
+        du.write_episode_info(data, EXPERIMENT_NAME)
 
     # reset all global variables
     CONFLICTS_IN_COOLDOWN = []
@@ -334,7 +287,6 @@ def reset():
     LoS_PAIRS = []
 
     TOTAL_REWARD = 0
-    N_INSTRUCTIONS = 0
     N_CONFLICTS = 0
     TIMER = 0
     START = 0

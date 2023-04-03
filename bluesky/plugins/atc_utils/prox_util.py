@@ -5,17 +5,8 @@ This file contains all functions used for anything regarding aircraft proximity.
 from math import sqrt
 from bluesky import traf
 from bluesky.tools import geo
-
-
-FT_NM_FACTOR = 0.000164578834   # ft * factor converts to nm
-M_FT_FACTOR = 3.280839895       # m * factor converts to feet
-MS_KT_FACTOR = 1.94384449
-
-# TODO: change this
-SEP_REP_HOR = 5.0               # report within 5 nm (was 3.5 nm)
-SEP_REP_VER = 1500              # report within 1500 ft
-SEP_MIN_HOR = 3.0               # 3 nm is min sep
-SEP_MIN_VER = 1000              # 1000 ft is min sep
+from bluesky.plugins.atc_utils.settings import FT_NM_FACTOR, M_FT_FACTOR, MS_KT_FACTOR,\
+                                                SEP_REP_VER, SEP_REP_HOR, SEP_MIN_VER, SEP_MIN_HOR
 
 
 def m_to_ft(alt: int) -> int:
