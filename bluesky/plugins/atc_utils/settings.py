@@ -1,6 +1,6 @@
 
 # Experiment settings
-SAVE_RESULTS = False             # boolean to dictate whether results are written to the csv
+SAVE_RESULTS = True             # boolean to dictate whether results are written to the csv
 EVAL_COOLDOWN = 4               # cooldown to let action take effect before applying reward
 EPISODE_LIMIT = 4000            # limits the amount of episodes
 TIME_LIMIT = 720                # 1440 updates equates to approximately 2 hours of simulation time
