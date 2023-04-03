@@ -14,7 +14,7 @@ MIN_EPSILON = 0.05              # minimum for exploration parameter
 EPSILON_DECAY = 0.005           # decay per training sequence
 
 # Agent action
-HDG_CHANGE = 45.0               # HDG change instruction deviates 15 degrees from original
+HDG_CHANGE = 15.0               # HDG change instruction deviates 15 degrees from original
 
 # Separation constraints
 SEP_REP_HOR = 5.0               # report within 5 nm (was 3.5 nm)
