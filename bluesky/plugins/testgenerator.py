@@ -13,13 +13,13 @@ from bluesky.tools import geo, areafilter
 
 ROUTES = "routes/"
 # DEFINITION = "route_definition.json"
-DEFINITION = "route_definition_south_west.json"
+# DEFINITION = "route_definition_south_west.json"
+DEFINITION = "route_definition_equal.json"
 ACID = 0
 MAX_AC = 20
 ELEMENT_COUNTER = 0
 PREVIOUS_ARRIVAL = None
 ONLY_TRANSITION = True
-ROUTE_ADDITION = None
 
 
 ### Initialization function of your plugin. Do not change the name of this
@@ -39,7 +39,7 @@ def init_plugin():
         # Update interval in seconds. By default, your plugin's update function(s)
         # are called every timestep of the simulation. If your plugin needs less
         # frequent updates provide an update interval.
-        'update_interval': 165.0,
+        'update_interval': 200.0,
 
         # The update function is called after traffic is updated. Use this if you
         # want to do things as a result of what happens in traffic. If you need to
@@ -74,7 +74,7 @@ def init_plugin():
 ### Periodic update functions that are called by the simulation. You can replace
 ### this by anything, so long as you communicate this in init_plugin
 
-def select_approach() -> (str, str):
+def select_approach() -> (str, str, str):
     """
     This function selects a random arrival and transition procedure from the definition json.
 
@@ -82,7 +82,6 @@ def select_approach() -> (str, str):
     """
 
     global PREVIOUS_ARRIVAL
-    global ROUTE_ADDITION
 
     workdir = os.getcwd()
     file = os.path.join(os.path.join(workdir, ROUTES), DEFINITION)
@@ -90,13 +89,14 @@ def select_approach() -> (str, str):
         data = json.load(f)
 
     rwy = random.choice(list(data.keys()))
+    route_addition = ""
 
     if ONLY_TRANSITION:
         all_transitions = list(data[rwy].keys())
         transition = random.choice([tran for tran in all_transitions if tran != PREVIOUS_ARRIVAL])
         arrival = random.choice(data[rwy][transition])
         PREVIOUS_ARRIVAL = transition
-        ROUTE_ADDITION = transition[0]
+        route_addition = transition[0]
         # print("spawning ac at {}".format(transition))
     else:
         transition = random.choice(list(data[rwy].keys()))
@@ -108,7 +108,7 @@ def select_approach() -> (str, str):
     rwy_transition = rwy + "-" + transition
     standard_arrival = transition + "-" + arrival
 
-    return rwy_transition, standard_arrival
+    return rwy_transition, standard_arrival, route_addition
 
 
 def read_fpl_from_txt_file(filename: str) -> dict[str: int]:
@@ -165,7 +165,7 @@ def read_approach_procedure(rwy_transition: str, star: str) -> dict:
     return flightplan
 
 
-def spawn_aircraft(flightpath: dict[str: int]):
+def spawn_aircraft(flightpath: dict[str: int], route_addition: str):
     """
     This function spawns the aircraft based on the provided flightpath.
 
@@ -190,15 +190,15 @@ def spawn_aircraft(flightpath: dict[str: int]):
     first = True
     for wpt, alt in flightpath.items():
         if first:
-            stack.stack("CRE AC{}_{}, A320, {}, {}, {}, 220".format(ACID, ROUTE_ADDITION, wpt, hdg, alt))
+            stack.stack("CRE AC{}_{}, A320, {}, {}, {}, 220".format(ACID, route_addition, wpt, hdg, alt))
             first = False
         else:
             if not alt:
-                stack.stack("ADDWPT AC{}_{} {}".format(ACID, ROUTE_ADDITION, wpt))
+                stack.stack("ADDWPT AC{}_{} {}".format(ACID, route_addition, wpt))
             else:
-                stack.stack("ADDWPT AC{}_{} {} {}".format(ACID, ROUTE_ADDITION, wpt, alt))
+                stack.stack("ADDWPT AC{}_{} {} {}".format(ACID, route_addition, wpt, alt))
 
-    stack.stack("VNAV AC{}_{} ON".format(ACID, ROUTE_ADDITION))
+    stack.stack("VNAV AC{}_{} ON".format(ACID, route_addition))
 
     ACID += 1
 
@@ -206,22 +206,31 @@ def spawn_aircraft(flightpath: dict[str: int]):
 
 
 def update():
-    # TODO: find possible starting points
-    # DONE: randomly select approach
-    # TODO: fix interval
-
     n_ac = len(traf.id)
 
+    # uncomment for test prints
     # if ACID > 0:
     #     idx = traf.id.index("AC{}_{}".format(ACID - 1))
     #     print("AC{}_{} loaded flightplan: {}".format(ACID - 1, traf.ap.route[idx].wpname))
 
-    if n_ac < MAX_AC:
+    # uncomment for old spawining after one another
+    # if n_ac < MAX_AC:
+    #
+    #     trans, star = select_approach()
+    #     # print(trans, star)
+    #     flightpath = read_approach_procedure(trans, star)
+    #     spawn_aircraft(flightpath)
 
-        trans, star = select_approach()
-        # print(trans, star)
-        flightpath = read_approach_procedure(trans, star)
-        spawn_aircraft(flightpath)
+    # spawning at the same time
+    if n_ac < MAX_AC - 1:
+        trans1, star1, add1 = select_approach()
+        trans2, star2, add2 = select_approach()
+
+        flightpath1 = read_approach_procedure(trans1, star1)
+        flightpath2 = read_approach_procedure(trans2, star2)
+
+        spawn_aircraft(flightpath1, add1)
+        spawn_aircraft(flightpath2, add2)
 
     return
 

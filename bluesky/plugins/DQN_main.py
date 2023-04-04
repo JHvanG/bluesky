@@ -261,7 +261,7 @@ def reset():
 
         data = {
             "episode": EPISODE_COUNTER,
-            "loss": loss,
+            "loss": loss[0],
             "average reward": TOTAL_REWARD / du.N_INSTRUCTIONS,
             "conflicts": N_CONFLICTS,
             "duration": round(time.time() - START, 2),

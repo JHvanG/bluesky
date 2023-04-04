@@ -2,7 +2,8 @@ import os
 import csv
 from bluesky import stack, traf
 from bluesky.plugins.atc_utils import prox_util as pu
-from bluesky.plugins.atc_utils.settings import HDG_CHANGE, SAVE_RESULTS
+from bluesky.plugins.atc_utils.settings import SEP_MIN_HOR, HDG_CHANGE, SAVE_RESULTS, CPA_PENALTY, LoS_PENALTY
+from cpa.closest_point_of_approach import closest_point_of_approach as cpa
 
 
 N_INSTRUCTIONS = 0          # counter for the number of instructions given
@@ -37,6 +38,11 @@ def reset_variables():
     return
 
 
+def get_cpa_data(ac: str) -> tuple[float, float, float, float]:
+    idx = traf.id.index(ac)
+    return (traf.lat[idx], traf.lon[idx], traf.gsnorth[idx], traf.gseast[idx])
+
+
 def get_reward(ac1: str, ac2: str) -> (bool, float):
     """
     This function returns the reward obtained from the action that was taken.
@@ -53,13 +59,15 @@ def get_reward(ac1: str, ac2: str) -> (bool, float):
 
     if pu.is_loss_of_separation(ac1, ac2):
         N_LoS += 1
-        return True, -5
+        return True, -1 * LoS_PENALTY
     elif not pu.is_within_alert_distance(ac1, ac2):
         return False, 5
     else:
-        dist_ac = pu.get_distance_to_ac(ac1, ac2)
-        dist_alert = pu.get_distance_to_alert_border()
-        return False, min(1, dist_ac / dist_alert)
+        # dist_ac = pu.get_distance_to_ac(ac1, ac2)
+        # dist_alert = pu.get_distance_to_alert_border()
+        # return False, min(1, dist_ac / dist_alert)
+        reward = 0 if cpa(get_cpa_data(ac1), get_cpa_data(ac2)) > SEP_MIN_HOR else -1 * CPA_PENALTY
+        return False, reward
 
 
 def engage_lnav(ac: str):
@@ -194,6 +202,6 @@ def write_episode_info(data: dict, experiment_name):
         if not file_exists:
             writer.writeheader()
 
-        writer.writerow(data)
+        writer.writerow(contents)
 
     return

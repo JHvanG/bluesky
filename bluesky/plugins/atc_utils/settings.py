@@ -4,7 +4,7 @@ SAVE_RESULTS = True             # boolean to dictate whether results are written
 EVAL_COOLDOWN = 4               # cooldown to let action take effect before applying reward
 EPISODE_LIMIT = 4000            # limits the amount of episodes
 TIME_LIMIT = 720                # 1440 updates equates to approximately 2 hours of simulation time
-CONFLICT_LIMIT = 50             # NOTE: rather randomly selected
+CONFLICT_LIMIT = 20             # NOTE: rather randomly selected
 TRAIN_INTERVAL = 2              # the number of episodes before retraining the network
 TARGET_INTERVAL = 100           # the number of episodes before updating the target network
 
@@ -26,3 +26,7 @@ SEP_MIN_VER = 1000              # 1000 ft is min sep
 FT_NM_FACTOR = 0.000164578834   # ft * factor converts to nm
 M_FT_FACTOR = 3.280839895       # m * factor converts to feet
 MS_KT_FACTOR = 1.94384449       # m/s * factor converts to kt
+
+# Reward weights
+CPA_PENALTY = 5                 # penalty for reducing the cpa to below minimum separation distance
+LoS_PENALTY = 10                # penalty for losing separation
