@@ -2,6 +2,7 @@
     in BlueSky as the description of your plugin. """
 import os
 import json
+import time
 import random
 import numpy as np
 # Import the global bluesky objects. Uncomment the ones you need
@@ -187,10 +188,23 @@ def spawn_aircraft(flightpath: dict[str: int], route_addition: str):
 
     hdg, _ = geo.qdrdist(lat1, lon1, lat2, lon2)
 
+    # ----- variation in spawning ------
+    hdg_opp = (hdg + 180) % 360
+
+    bearing = random.choice([hdg, hdg_opp])
+
+    # determine actual spawning point
+    lat1, lon1 = geo.qdrpos(lat1, lon1, bearing, random.randrange(3))
+
+    _, dist = geo.qdrdist(lat1, lon1, lat2, lon2)
+
+    print("AC{}_{} at {} nm from junction".format(ACID, route_addition, dist))
+    # ----- variation in spawning ------
+
     first = True
     for wpt, alt in flightpath.items():
         if first:
-            stack.stack("CRE AC{}_{}, A320, {}, {}, {}, 220".format(ACID, route_addition, wpt, hdg, alt))
+            stack.stack("CRE AC{}_{}, A320, {}, {}, {}, {}, 220".format(ACID, route_addition, lat1, lon1, hdg, alt))
             first = False
         else:
             if not alt:
@@ -223,12 +237,14 @@ def update():
 
     # spawning at the same time
     if n_ac < MAX_AC - 1:
+        # randomly select spawning order
         trans1, star1, add1 = select_approach()
         trans2, star2, add2 = select_approach()
 
         flightpath1 = read_approach_procedure(trans1, star1)
         flightpath2 = read_approach_procedure(trans2, star2)
 
+        # spawn with a random variation to initial point
         spawn_aircraft(flightpath1, add1)
         spawn_aircraft(flightpath2, add2)
 
