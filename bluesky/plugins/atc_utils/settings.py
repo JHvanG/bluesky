@@ -10,7 +10,7 @@ TARGET_INTERVAL = 100           # the number of episodes before updating the tar
 
 # DQN exploration parameters
 MAX_EPSILON = 1.0               # maximum for exploration parameter
-MIN_EPSILON = 0.05              # minimum for exploration parameter
+MIN_EPSILON = 0.01              # minimum for exploration parameter
 EPSILON_DECAY = 0.005           # decay per training sequence
 
 # Agent action
@@ -28,5 +28,6 @@ M_FT_FACTOR = 3.280839895       # m * factor converts to feet
 MS_KT_FACTOR = 1.94384449       # m/s * factor converts to kt
 
 # Reward weights
-CPA_PENALTY = 5                 # penalty for reducing the cpa to below minimum separation distance
-LoS_PENALTY = 10                # penalty for losing separation
+CPA_PENALTY = -5                # penalty for reducing the cpa to below minimum separation distance
+LoS_PENALTY = -10               # penalty for losing separation
+SEP_REWARD = 5                  # reward for attaining separation
