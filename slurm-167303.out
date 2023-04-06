@@ -145548,3 +145548,13 @@ Episode 3710 finished
 resetting spawn plugin
 Loading global navigation database...
 Reading cache: /home2/s3813053/bluesky/cache/navdata.p
+slurmstepd: error: *** JOB 167303 ON node89 CANCELLED AT 2023-04-06T09:25:47 ***
+slurmstepd: error: Detected 1 oom-kill event(s) in StepId=167303.batch. Some of your processes may have been killed by the cgroup out-of-memory handler.
+#################################################################################################################
+# Job details recorded by SLURM job epilog using sacct.                                                         #
+#################################################################################################################
+Resources consumed by job 167303 for user s3813053 running on compute node node89:
+================================================================================================================
+JobID         Elapsed     AllocCPUS  AveCPU    ReqMem  MaxVMSize  MaxRSS    MaxDiskRead  MaxDiskWrite
+167303.batch  1-16:06:24  1          15:55:35          1040996K   1036536K  4.80M        0.67M
+#################################################################################################################
