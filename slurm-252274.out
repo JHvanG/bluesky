@@ -1,0 +1,31 @@
+The following modules were not unloaded:
+  (Use "module --force purge" to unload all):
+
+  1) 2023.01   2) StdEnv
+Python 3.9.6
+/scratch/s3813053/.envs/bluesky/bin/python3
+Using Python-based geo functions
+Reading config from /home2/s3813053/bluesky/settings.cfg
+Reading magnetic variation data
+   *****   BlueSky Open ATM simulator *****
+Distributed under GNU General Public License v3
+Traceback (most recent call last):
+  File "/home2/s3813053/bluesky/BlueSky.py", line 9, in <module>
+    sys.exit(main())
+  File "/home2/s3813053/bluesky/bluesky/__main__.py", line 50, in main
+    bs.server.run()
+  File "/home2/s3813053/bluesky/bluesky/network/server.py", line 80, in run
+    self.fe_event.bind(f'tcp://*:{bs.settings.event_port}')
+  File "/scratch/s3813053/.envs/bluesky/lib/python3.9/site-packages/zmq/sugar/socket.py", line 301, in bind
+    super().bind(addr)
+  File "zmq/backend/cython/socket.pyx", line 564, in zmq.backend.cython.socket.Socket.bind
+  File "zmq/backend/cython/checkrc.pxd", line 28, in zmq.backend.cython.checkrc._check_rc
+zmq.error.ZMQError: Address already in use
+#################################################################################################################
+# Job details recorded by SLURM job epilog using sacct.                                                         #
+#################################################################################################################
+Resources consumed by job 252274 for user s3813053 running on compute node node90:
+================================================================================================================
+JobID         Elapsed   AllocCPUS  AveCPU    ReqMem  MaxVMSize  MaxRSS  MaxDiskRead  MaxDiskWrite
+252274.batch  00:00:04  1          00:00:01          8K         0       0            0
+#################################################################################################################
