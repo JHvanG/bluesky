@@ -7,11 +7,12 @@ TIME_LIMIT = 720                # 1440 updates equates to approximately 2 hours 
 CONFLICT_LIMIT = 20             # NOTE: rather randomly selected
 TRAIN_INTERVAL = 2              # the number of episodes before retraining the network
 TARGET_INTERVAL = 100           # the number of episodes before updating the target network
+GEN_INTERVAL = 360.0            # time (seconds) it takes between spawn calls
 
 # DQN exploration parameters
 MAX_EPSILON = 1.0               # maximum for exploration parameter
-MIN_EPSILON = 0.01              # minimum for exploration parameter
-EPSILON_DECAY = 0.005           # decay per training sequence
+MIN_EPSILON = 0.05              # minimum for exploration parameter
+EPSILON_DECAY = 0.002           # decay per training sequence
 
 # Agent action
 HDG_CHANGE = 45.0               # HDG change instruction deviates 15 degrees from original

@@ -16,11 +16,12 @@ from bluesky.plugins.atc_utils import prox_util as pu
 from bluesky.plugins.atc_utils import dqn_util as du
 from bluesky.plugins.atc_utils.settings import EVAL_COOLDOWN, EPISODE_LIMIT, TIME_LIMIT, \
                                                CONFLICT_LIMIT, TRAIN_INTERVAL, TARGET_INTERVAL, \
-                                               HDG_CHANGE, SEP_REP_HOR, EPSILON_DECAY, MIN_EPSILON
+                                               HDG_CHANGE, SEP_REP_HOR, EPSILON_DECAY, MIN_EPSILON, \
+                                               GEN_INTERVAL
 
 # LET OP: DE RIVER1D TRANSITION IS NU VERKORT MET EEN WAYPOINT!!!!!!!
 
-EXPERIMENT_NAME = "_random_spawning_two_transitions_360spaced_{}deg_{}nm_{}decay_{}random_chance".format(HDG_CHANGE, SEP_REP_HOR, EPSILON_DECAY, MIN_EPSILON).replace(".", "_")
+EXPERIMENT_NAME = "_random_spawning_two_transitions_{}spaced_{}deg_{}nm_{}decay_{}random_chance".format(GEN_INTERVAL, HDG_CHANGE, SEP_REP_HOR, EPSILON_DECAY, MIN_EPSILON).replace(".", "_")
 
 EPISODE_COUNTER = 0                     # counter to keep track of how many episodes have passed
 START = 0                               # start time

@@ -10,6 +10,7 @@ from bluesky import stack, traf  #, settings, navdb, sim, scr, tools
 from bluesky import navdb
 from bluesky.tools.aero import ft
 from bluesky.tools import geo, areafilter
+from bluesky.plugins.atc_utils.settings import GEN_INTERVAL
 
 
 ROUTES = "routes/"
@@ -40,7 +41,8 @@ def init_plugin():
         # Update interval in seconds. By default, your plugin's update function(s)
         # are called every timestep of the simulation. If your plugin needs less
         # frequent updates provide an update interval.
-        'update_interval': 360.0,
+        # was 240
+        'update_interval': GEN_INTERVAL,
 
         # The update function is called after traffic is updated. Use this if you
         # want to do things as a result of what happens in traffic. If you need to
