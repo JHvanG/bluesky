@@ -14,6 +14,7 @@ from bluesky.plugins.atc_utils.rel_state_utils.state import State
 from bluesky.plugins.atc_utils.rel_state_utils.controller import Controller
 from bluesky.plugins.atc_utils import prox_util as pu
 from bluesky.plugins.atc_utils import dqn_util as du
+from cpa import closest_point_of_approach as cpa
 from bluesky.plugins.atc_utils.settings import EVAL_COOLDOWN, EPISODE_LIMIT, TIME_LIMIT, \
                                                CONFLICT_LIMIT, TRAIN_INTERVAL, TARGET_INTERVAL, \
                                                HDG_CHANGE, SEP_REP_HOR, EPSILON_DECAY, MIN_EPSILON, \
@@ -21,7 +22,8 @@ from bluesky.plugins.atc_utils.settings import EVAL_COOLDOWN, EPISODE_LIMIT, TIM
 
 # LET OP: DE RIVER1D TRANSITION IS NU VERKORT MET EEN WAYPOINT!!!!!!!
 
-EXPERIMENT_NAME = "_constant_spawning_two_transitions_{}spaced_{}deg_{}nm_{}decay_{}random_chance".format(GEN_INTERVAL, HDG_CHANGE, SEP_REP_HOR, EPSILON_DECAY, MIN_EPSILON).replace(".", "_")
+EXPERIMENT_NAME = "_CPAREWARD_constant_spawning_two_transitions_{}spaced_{}deg_{}nm_{}decay_{}random_chance".format(GEN_INTERVAL, HDG_CHANGE, SEP_REP_HOR, EPSILON_DECAY, MIN_EPSILON).replace(".", "_")
+# EXPERIMENT_NAME = "_constant_spawning_two_transitions_{}spaced_{}deg_{}nm_{}decay_{}random_chance".format(GEN_INTERVAL, HDG_CHANGE, SEP_REP_HOR, EPSILON_DECAY, MIN_EPSILON).replace(".", "_")
 # EXPERIMENT_NAME = "_random_spawning_two_transitions_{}spaced_{}deg_{}nm_{}decay_{}random_chance".format(GEN_INTERVAL, HDG_CHANGE, SEP_REP_HOR, EPSILON_DECAY, MIN_EPSILON).replace(".", "_")
 
 EPISODE_COUNTER = 0                     # counter to keep track of how many episodes have passed
@@ -138,7 +140,7 @@ def waiting_for_reward(ac1: str, ac2: str) -> bool:
     :param ac2: string of aircraft id of second aircraft
     :return: True if still in previous actions, else False
     """
-    for _, _, stored_ac1, stored_ac2, _ in PREVIOUS_ACTIONS:
+    for _, _, stored_ac1, stored_ac2, _, _ in PREVIOUS_ACTIONS:
         if ac1 == stored_ac1 and ac2 == stored_ac2:
             return True
     return False
@@ -184,16 +186,16 @@ def update():
         actions_in_cooldown = []
 
         while PREVIOUS_ACTIONS:
-            prev_state, action, ac1, ac2, cooldown = PREVIOUS_ACTIONS.pop()
+            prev_state, action, ac1, ac2, cooldown, cpa_dist = PREVIOUS_ACTIONS.pop()
 
             # check if action has had chance to have effect
             if cooldown < EVAL_COOLDOWN and not pu.is_loss_of_separation(ac1, ac2):
-                actions_in_cooldown.append((prev_state, action, ac1, ac2, cooldown + 1))
+                actions_in_cooldown.append((prev_state, action, ac1, ac2, cooldown + 1, cpa_dist))
             elif ac1 in traf.id and ac2 in traf.id:
                 current_state = get_current_state(ac1, ac2)
 
                 # the reward is based on the current state, so can be taken directly from info of the simulator
-                LoS, reward = du.get_reward(ac1, ac2)
+                LoS, reward = du.get_reward(ac1, ac2, cpa_dist)
                 TOTAL_REWARD += reward
 
                 if LoS:
@@ -226,7 +228,8 @@ def update():
             du.handle_instruction(ac1, action)
 
             # previous actions are maintained to apply rewards in the next state
-            PREVIOUS_ACTIONS.append((state, action, ac1, ac2, 0))
+            cpa_dist = cpa.closest_point_of_approach(du.get_cpa_data(ac1), du.get_cpa_data(ac2))
+            PREVIOUS_ACTIONS.append((state, action, ac1, ac2, 0, cpa_dist))
 
     return
 

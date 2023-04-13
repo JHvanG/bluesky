@@ -43,12 +43,13 @@ def get_cpa_data(ac: str) -> tuple[float, float, float, float]:
     return (traf.lat[idx], traf.lon[idx], traf.gsnorth[idx], traf.gseast[idx])
 
 
-def get_reward(ac1: str, ac2: str) -> (bool, float):
+def get_reward(ac1: str, ac2: str, cpa_prev: float) -> (bool, float):
     """
     This function returns the reward obtained from the action that was taken.
 
     :param ac1: first aircraft in the conflict
     :param ac2: second aircraft in the conflict
+    :param cpa_prev: previous cpa distance to determine improvement
     :return: boolean indicating whether separation was lost and reward
     """
 
@@ -66,7 +67,20 @@ def get_reward(ac1: str, ac2: str) -> (bool, float):
         # dist_ac = pu.get_distance_to_ac(ac1, ac2)
         # dist_alert = pu.get_distance_to_alert_border()
         # return False, min(1, dist_ac / dist_alert)
-        reward = 0 if cpa(get_cpa_data(ac1), get_cpa_data(ac2)) > SEP_MIN_HOR else CPA_PENALTY
+
+        # reward = 0 if cpa(get_cpa_data(ac1), get_cpa_data(ac2)) > SEP_MIN_HOR else CPA_PENALTY
+
+        cpa_curr = cpa(get_cpa_data(ac1), get_cpa_data(ac2))
+
+        if cpa_curr < SEP_MIN_HOR:
+            reward = CPA_PENALTY
+        elif cpa_curr >= cpa_prev:
+            print("more sep")
+            reward = 2
+        else:
+            print("less sep")
+            reward = -2
+
         return False, reward
 
 
