@@ -191,16 +191,16 @@ def spawn_aircraft(flightpath: dict[str: int], route_addition: str):
     hdg, _ = geo.qdrdist(lat1, lon1, lat2, lon2)
 
     # ----- variation in spawning ------
-    # hdg_opp = (hdg + 180) % 360
-    #
-    # bearing = random.choice([hdg, hdg_opp])
-    #
-    # # determine actual spawning point
-    # lat1, lon1 = geo.qdrpos(lat1, lon1, bearing, random.randrange(3))
-    #
-    # _, dist = geo.qdrdist(lat1, lon1, lat2, lon2)
-    #
-    # print("AC{}_{} at {} nm from junction".format(ACID, route_addition, dist))
+    hdg_opp = (hdg + 180) % 360
+
+    bearing = random.choice([hdg, hdg_opp])
+
+    # determine actual spawning point
+    lat1, lon1 = geo.qdrpos(lat1, lon1, bearing, random.randrange(3))
+
+    _, dist = geo.qdrdist(lat1, lon1, lat2, lon2)
+
+    print("AC{}_{} at {} nm from junction".format(ACID, route_addition, dist))
     # ----- variation in spawning ------
 
     first = True
