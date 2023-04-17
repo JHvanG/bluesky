@@ -200,7 +200,7 @@ def spawn_aircraft(flightpath: dict[str: int], route_addition: str):
 
     _, dist = geo.qdrdist(lat1, lon1, lat2, lon2)
 
-    print("AC{}_{} at {} nm from junction".format(ACID, route_addition, dist))
+    # print("AC{}_{} at {} nm from junction".format(ACID, route_addition, dist))
     # ----- variation in spawning ------
 
     first = True

@@ -1,8 +1,9 @@
 
 # Experiment settings
 SAVE_RESULTS = True             # boolean to dictate whether results are written to the csv
+LOAD_WEIGHTS = True             # boolean to dictate whether previous weights should be loaded
 EVAL_COOLDOWN = 4               # cooldown to let action take effect before applying reward
-EPISODE_LIMIT = 4000            # limits the amount of episodes
+EPISODE_LIMIT = 6500            # limits the amount of episodes
 TIME_LIMIT = 720                # 1440 updates equates to approximately 2 hours of simulation time
 CONFLICT_LIMIT = 20             # NOTE: rather randomly selected
 TRAIN_INTERVAL = 2              # the number of episodes before retraining the network

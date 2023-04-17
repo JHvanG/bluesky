@@ -8,14 +8,14 @@ from keras.layers import Dense, Input
 
 from bluesky.plugins.atc_utils.rel_state_utils.state import State
 from bluesky.plugins.atc_utils.replay_buffer import ReplayBuffer
-from bluesky.plugins.atc_utils.settings import MAX_EPSILON, MIN_EPSILON, EPSILON_DECAY
+from bluesky.plugins.atc_utils.settings import LOAD_WEIGHTS, MAX_EPSILON, MIN_EPSILON, EPSILON_DECAY
 
 
 class Controller(object):
     """
     This class represents the controller agent that is responsible for the centralized control.
     """
-    def __init__(self):
+    def __init__(self, weights_file: str = None):
         """
         Initialization of the Controller Agent. This class contains all essentials to operate the DRL based plugin in
         terms of network-related processes.
@@ -32,6 +32,9 @@ class Controller(object):
         self.num_actions = len(self.encoding)
         self.model = self._create_model()
         self.target_model = self._create_model()
+
+        if weights_file and LOAD_WEIGHTS:
+            self.load_weights(weights_file)
 
     def select_action(self, model_output: list[float]) -> str:
         """
@@ -116,7 +119,9 @@ class Controller(object):
         """
 
         workdir = os.getcwd()
-        self.model.load_weights(workdir, "results/model_weights/training_weights_com" + name + ".h5")
+        print("loading from weights_file: " + "results/model_weights/training_weights_com" + name + ".h5")
+        self.model.load_weights(os.path.join(workdir, "results/model_weights/training_weights_com" + name + ".h5"))
+        self.target_model.load_weights(os.path.join(workdir, "results/model_weights/training_weights_com" + name + ".h5"))
 
         return
 

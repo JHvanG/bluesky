@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --time=48:00:00
+#SBATCH --time=96:00:00
 #SBATCH --mem=2G
 #SBATCH --partition=regular
 #SBATCH --mail-type=FAIL,END

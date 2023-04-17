@@ -39,7 +39,8 @@ LoS_PAIRS = []                          # list of aircraft that have currently l
 TOTAL_REWARD = 0                        # storage for total obtained reward this episode
 N_CONFLICTS = 0                         # counter for the number of conflicts that have been encountered
 
-CONTROLLER = Controller()               # atc agent based on a DQN
+# CONTROLLER = Controller()               # atc agent based on a DQN
+CONTROLLER = Controller(EXPERIMENT_NAME)               # atc agent based on a DQN
 
 
 ### Initialization function of your plugin. Do not change the name of this
