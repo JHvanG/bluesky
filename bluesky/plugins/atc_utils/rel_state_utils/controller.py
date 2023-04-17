@@ -35,6 +35,7 @@ class Controller(object):
 
         if weights_file and LOAD_WEIGHTS:
             self.load_weights(weights_file)
+            self.epsilon = MIN_EPSILON
 
     def select_action(self, model_output: list[float]) -> str:
         """
