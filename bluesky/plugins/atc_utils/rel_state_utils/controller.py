@@ -137,7 +137,7 @@ class Controller(object):
         q_net = Sequential()
         q_net.add(Dense(64, input_dim=11, activation='relu', kernel_initializer='he_uniform'))
         q_net.add(Dense(32, activation='relu', kernel_initializer='he_uniform'))
-        q_net.add(Dense(3, activation='sigmoid', kernel_initializer='he_uniform'))
+        q_net.add(Dense(3, activation='linear', kernel_initializer='he_uniform'))
         q_net.compile(loss="mse", optimizer=tf.optimizers.Adam(learning_rate=0.001))
         print(q_net.summary())
 
@@ -159,6 +159,7 @@ class Controller(object):
         """
         state_batch, action_batch, reward_batch, next_state_batch = batch
         current_q = self.model(state_batch).numpy()
+        print(current_q)
         target_q = np.copy(current_q)
         next_q = self.target_model(next_state_batch).numpy()
         max_next_q = np.amax(next_q, axis=1)

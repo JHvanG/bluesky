@@ -18,29 +18,29 @@ from cpa import closest_point_of_approach as cpa
 from bluesky.plugins.atc_utils.settings import EVAL_COOLDOWN, EPISODE_LIMIT, TIME_LIMIT, \
                                                CONFLICT_LIMIT, TRAIN_INTERVAL, TARGET_INTERVAL, \
                                                HDG_CHANGE, SEP_REP_HOR, EPSILON_DECAY, MIN_EPSILON, \
-                                               GEN_INTERVAL
+                                               GEN_INTERVAL, SAVE_RESULTS
 
 # LET OP: DE RIVER1D TRANSITION IS NU VERKORT MET EEN WAYPOINT!!!!!!!
 
 # EXPERIMENT_NAME = "_CPAREWARD_constant_spawning_two_transitions_{}spaced_{}deg_{}nm_{}decay_{}random_chance".format(GEN_INTERVAL, HDG_CHANGE, SEP_REP_HOR, EPSILON_DECAY, MIN_EPSILON).replace(".", "_")
-EXPERIMENT_NAME = "_CPAREWARD_random_spawning_two_transitions_{}spaced_{}deg_{}nm_{}decay_{}random_chance".format(GEN_INTERVAL, HDG_CHANGE, SEP_REP_HOR, EPSILON_DECAY, MIN_EPSILON).replace(".", "_")
+EXPERIMENT_NAME = "_CPAREWARD_Linear_random_spawning_two_transitions_{}spaced_{}deg_{}nm_{}decay_{}random_chance".format(GEN_INTERVAL, HDG_CHANGE, SEP_REP_HOR, EPSILON_DECAY, MIN_EPSILON).replace(".", "_")
 # EXPERIMENT_NAME = "_constant_spawning_two_transitions_{}spaced_{}deg_{}nm_{}decay_{}random_chance".format(GEN_INTERVAL, HDG_CHANGE, SEP_REP_HOR, EPSILON_DECAY, MIN_EPSILON).replace(".", "_")
 # EXPERIMENT_NAME = "_random_spawning_two_transitions_{}spaced_{}deg_{}nm_{}decay_{}random_chance".format(GEN_INTERVAL, HDG_CHANGE, SEP_REP_HOR, EPSILON_DECAY, MIN_EPSILON).replace(".", "_")
 
-EPISODE_COUNTER = 0                     # counter to keep track of how many episodes have passed
-START = 0                               # start time
-TIMER = 0                               # counter to keep track of how many update calls were made this episode
+EPISODE_COUNTER = 0                         # counter to keep track of how many episodes have passed
+START = 0                                   # start time
+TIMER = 0                                   # counter to keep track of how many update calls were made this episode
 
-CONFLICTS_IN_COOLDOWN = []              # list of aircraft that are currently in conflict with one another
-PREVIOUS_ACTIONS = []                   # buffer for previous actions with the given state and the aircraft pair
-KNOWN_CONFLICTS = []                    # list of conflict pairs that have been counted to the conflict total
-LoS_PAIRS = []                          # list of aircraft that have currently lost separation
+CONFLICTS_IN_COOLDOWN = []                  # list of aircraft that are currently in conflict with one another
+PREVIOUS_ACTIONS = []                       # buffer for previous actions with the given state and the aircraft pair
+KNOWN_CONFLICTS = []                        # list of conflict pairs that have been counted to the conflict total
+LoS_PAIRS = []                              # list of aircraft that have currently lost separation
 
-TOTAL_REWARD = 0                        # storage for total obtained reward this episode
-N_CONFLICTS = 0                         # counter for the number of conflicts that have been encountered
+TOTAL_REWARD = 0                            # storage for total obtained reward this episode
+N_CONFLICTS = 0                             # counter for the number of conflicts that have been encountered
 
-# CONTROLLER = Controller()               # atc agent based on a DQN
-CONTROLLER = Controller(EXPERIMENT_NAME)               # atc agent based on a DQN
+# CONTROLLER = Controller()                 # atc agent based on a DQN
+CONTROLLER = Controller(EXPERIMENT_NAME)    # atc agent based on a DQN
 
 
 ### Initialization function of your plugin. Do not change the name of this
@@ -261,9 +261,11 @@ def reset():
 
     if EPISODE_COUNTER % TRAIN_INTERVAL == 0:
         loss = CONTROLLER.train(CONTROLLER.load_experiences())
-        CONTROLLER.save_weights(name=EXPERIMENT_NAME)
+        if SAVE_RESULTS:
+            CONTROLLER.save_weights(name=EXPERIMENT_NAME)
 
         if EPISODE_COUNTER % TARGET_INTERVAL == 0:
+            print('updating target')
             CONTROLLER.update_target_model()
 
         data = {
