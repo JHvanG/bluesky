@@ -1,7 +1,7 @@
 
 # Experiment settings
 SAVE_RESULTS = True             # boolean to dictate whether results are written to the csv
-LOAD_WEIGHTS = True             # boolean to dictate whether previous weights should be loaded
+LOAD_WEIGHTS = False             # boolean to dictate whether previous weights should be loaded
 EVAL_COOLDOWN = 4               # cooldown to let action take effect before applying reward
 EPISODE_LIMIT = 6500            # limits the amount of episodes
 TIME_LIMIT = 720                # 1440 updates equates to approximately 2 hours of simulation time

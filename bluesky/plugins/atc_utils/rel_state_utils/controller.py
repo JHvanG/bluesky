@@ -121,8 +121,11 @@ class Controller(object):
 
         workdir = os.getcwd()
         print("loading from weights_file: " + "results/model_weights/training_weights_com" + name + ".h5")
-        self.model.load_weights(os.path.join(workdir, "results/model_weights/training_weights_com" + name + ".h5"))
-        self.target_model.load_weights(os.path.join(workdir, "results/model_weights/training_weights_com" + name + ".h5"))
+        try:
+            self.model.load_weights(os.path.join(workdir, "results/model_weights/training_weights_com" + name + ".h5"))
+            self.target_model.load_weights(os.path.join(workdir, "results/model_weights/training_weights_com" + name + ".h5"))
+        except FileNotFoundError:
+            print("FILE NOT FOUND, TRAINING WITH RANDOM WEIGHTS")
 
         return
 
