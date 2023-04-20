@@ -6,8 +6,8 @@ EVAL_COOLDOWN = 4               # cooldown to let action take effect before appl
 EPISODE_LIMIT = 6500            # limits the amount of episodes
 TIME_LIMIT = 720                # 1440 updates equates to approximately 2 hours of simulation time
 CONFLICT_LIMIT = 20             # NOTE: rather randomly selected
-TRAIN_INTERVAL = 2              # the number of episodes before retraining the network
-TARGET_INTERVAL = 100          # the number of episodes before updating the target network
+TRAIN_INTERVAL = 4              # the number of episodes before retraining the network
+TARGET_INTERVAL = 1000          # the number of episodes before updating the target network
 GEN_INTERVAL = 360.0            # time (seconds) it takes between spawn calls (240 or 360)
 
 # DQN exploration parameters
