@@ -75,10 +75,8 @@ def get_reward(ac1: str, ac2: str, cpa_prev: float) -> (bool, float):
         if cpa_curr < SEP_MIN_HOR:
             reward = CPA_PENALTY
         elif cpa_curr >= cpa_prev:
-            print("more sep")
             reward = 2
         else:
-            print("less sep")
             reward = -2
 
         return False, reward
