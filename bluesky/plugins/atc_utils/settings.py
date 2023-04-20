@@ -7,7 +7,7 @@ EPISODE_LIMIT = 6500            # limits the amount of episodes
 TIME_LIMIT = 720                # 1440 updates equates to approximately 2 hours of simulation time
 CONFLICT_LIMIT = 20             # NOTE: rather randomly selected
 TRAIN_INTERVAL = 2              # the number of episodes before retraining the network
-TARGET_INTERVAL = 100           # the number of episodes before updating the target network
+TARGET_INTERVAL = 100          # the number of episodes before updating the target network
 GEN_INTERVAL = 360.0            # time (seconds) it takes between spawn calls (240 or 360)
 
 # DQN exploration parameters
@@ -21,7 +21,7 @@ HDG_CHANGE = 45.0               # HDG change instruction deviates 15 degrees fro
 # Separation constraints
 SEP_REP_HOR = 7.5               # report within 5 nm (was 3.5 nm)
 SEP_REP_VER = 1500              # report within 1500 ft
-SEP_MIN_HOR = 3.0               # 3 nm is min sep
+SEP_MIN_HOR = 2.5               # 2.5 nm is min sep
 SEP_MIN_VER = 1000              # 1000 ft is min sep
 
 # Conversion factors

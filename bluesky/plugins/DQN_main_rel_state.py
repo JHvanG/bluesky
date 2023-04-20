@@ -17,13 +17,14 @@ from bluesky.plugins.atc_utils import dqn_util as du
 from cpa import closest_point_of_approach as cpa
 from bluesky.plugins.atc_utils.settings import EVAL_COOLDOWN, EPISODE_LIMIT, TIME_LIMIT, \
                                                CONFLICT_LIMIT, TRAIN_INTERVAL, TARGET_INTERVAL, \
-                                               HDG_CHANGE, SEP_REP_HOR, EPSILON_DECAY, MIN_EPSILON, \
+                                               SEP_REP_HOR, EPSILON_DECAY, MIN_EPSILON, \
                                                GEN_INTERVAL, SAVE_RESULTS
 
 # LET OP: DE RIVER1D TRANSITION IS NU VERKORT MET EEN WAYPOINT!!!!!!!
 
+EXPERIMENT_NAME = "_SWtran_CPAReward_Random_{}train_{}update_{}spaced_{}alert_{}decay_{}epsilon".format(TRAIN_INTERVAL, TARGET_INTERVAL, GEN_INTERVAL, SEP_REP_HOR, EPSILON_DECAY, MIN_EPSILON).replace(".", "_")
 # EXPERIMENT_NAME = "_CPAREWARD_constant_spawning_two_transitions_{}spaced_{}deg_{}nm_{}decay_{}random_chance".format(GEN_INTERVAL, HDG_CHANGE, SEP_REP_HOR, EPSILON_DECAY, MIN_EPSILON).replace(".", "_")
-EXPERIMENT_NAME = "_CPAREWARD_Linear_random_spawning_two_transitions_{}spaced_{}deg_{}nm_{}decay_{}random_chance".format(GEN_INTERVAL, HDG_CHANGE, SEP_REP_HOR, EPSILON_DECAY, MIN_EPSILON).replace(".", "_")
+# EXPERIMENT_NAME = "_CPAREWARD_Linear_random_spawning_two_transitions_{}spaced_{}deg_{}nm_{}decay_{}random_chance".format(GEN_INTERVAL, HDG_CHANGE, SEP_REP_HOR, EPSILON_DECAY, MIN_EPSILON).replace(".", "_")
 # EXPERIMENT_NAME = "_constant_spawning_two_transitions_{}spaced_{}deg_{}nm_{}decay_{}random_chance".format(GEN_INTERVAL, HDG_CHANGE, SEP_REP_HOR, EPSILON_DECAY, MIN_EPSILON).replace(".", "_")
 # EXPERIMENT_NAME = "_random_spawning_two_transitions_{}spaced_{}deg_{}nm_{}decay_{}random_chance".format(GEN_INTERVAL, HDG_CHANGE, SEP_REP_HOR, EPSILON_DECAY, MIN_EPSILON).replace(".", "_")
 
@@ -90,9 +91,6 @@ def init_plugin():
             'First test plugin to help with plugin development.']
     }
 
-    # TODO: remove training results (or rename to other name or sth)
-    # TODO: allow for running by loading best weights
-
     # init_plugin() should always return these two dicts.
     return config, stackfunctions
 
@@ -110,7 +108,6 @@ def get_current_state(ac1: str, ac2: str) -> State:
     lat2, lon2, alt2, hdg2, rte2 = du.load_state_data(ac2)
     com_bearing, com_dist, com_hdg = pu.get_centre_of_mass(ac1)
 
-    # TODO: verify that this is correct for the bearing
     bearing, dist = geo.qdrdist(lat1, lon1, lat2, lon2)  # bearing, distance (nm)
 
     return State(bearing, dist, alt1, hdg1, rte1, alt2, hdg2, rte2,
@@ -152,18 +149,6 @@ def update():
     """
     This is the main function of the plugin, which is called each update.
     """
-
-    # ------------------------------------------------------------------------------------------------------------------
-    # DONE: compute centre of mass and average heading
-    # DONE: redefine state space
-    # DONE: give action for single plane for only closest conflict
-    # TODO: increase action space to also do nothing or do more drastic turns?
-    # DONE: give reward based on distance to conflict --> the further the better
-    # DONE: start with just two transitions
-    # DONE: register route number
-    # DONE: get_current_state
-    # DONE: handle_instructions
-    # ------------------------------------------------------------------------------------------------------------------
 
     global TIMER
     global START
@@ -265,12 +250,12 @@ def reset():
             CONTROLLER.save_weights(name=EXPERIMENT_NAME)
 
         if EPISODE_COUNTER % TARGET_INTERVAL == 0:
-            print('updating target')
+            print('Episode {}: updating target'.format(EPISODE_COUNTER))
             CONTROLLER.update_target_model()
 
         data = {
             "episode": EPISODE_COUNTER,
-            "loss": loss[0],
+            "loss": loss,
             "average reward": TOTAL_REWARD / du.N_INSTRUCTIONS,
             "conflicts": N_CONFLICTS,
             "duration": round(time.time() - START, 2),

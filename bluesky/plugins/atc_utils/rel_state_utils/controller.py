@@ -80,8 +80,6 @@ class Controller(object):
         :return: two strings containing the actions to be taken.
         """
 
-        # print("Predicting on: {}".format(state.get_state_as_list()))
-
         # exploration
         if random.random() < self.epsilon:
             # TODO: only do this when training
@@ -162,7 +160,6 @@ class Controller(object):
         """
         state_batch, action_batch, reward_batch, next_state_batch = batch
         current_q = self.model(state_batch).numpy()
-        print(current_q)
         target_q = np.copy(current_q)
         next_q = self.target_model(next_state_batch).numpy()
         max_next_q = np.amax(next_q, axis=1)
@@ -170,13 +167,12 @@ class Controller(object):
         for i in range(state_batch.shape[0]):
             target_q_val = reward_batch[i]
 
-            # TODO: alter this to fit needs
             target_q_val += 0.95 * max_next_q[i]
 
             target_q[i][action_batch[i]] = target_q_val
 
         training_history = self.model.fit(x=state_batch, y=target_q, verbose=0)
-        loss = training_history.history['loss']
+        loss = training_history.history['loss'][0]
 
         # apply exploration decay
         self.epsilon = max(self.min_epsilon, self.epsilon - (self.max_epsilon - self.min_epsilon) * self.epsilon_decay)
