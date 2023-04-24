@@ -81,6 +81,44 @@ def get_reward(ac1: str, ac2: str, cpa_prev: float) -> (bool, float):
 
         return False, reward
 
+def get_reward_lnav_incentive(ac1: str, ac2: str, action: str) -> (bool, float):
+    """
+    This function returns the reward obtained from the action that was taken.
+
+    :param ac1: first aircraft in the conflict
+    :param ac2: second aircraft in the conflict
+    :param action: taken action (LEFT, RIGHT OR LNAV)
+    :return: boolean indicating whether separation was lost and reward
+    """
+
+    global N_LoS
+    global N_INSTRUCTIONS
+
+    N_INSTRUCTIONS += 1
+
+    if pu.is_loss_of_separation(ac1, ac2):
+        N_LoS += 1
+        return True, LoS_PENALTY
+    elif not pu.is_within_alert_distance(ac1, ac2):
+        return False, SEP_REWARD
+    else:
+        # dist_ac = pu.get_distance_to_ac(ac1, ac2)
+        # dist_alert = pu.get_distance_to_alert_border()
+        # return False, min(1, dist_ac / dist_alert)
+
+        # reward = 0 if cpa(get_cpa_data(ac1), get_cpa_data(ac2)) > SEP_MIN_HOR else CPA_PENALTY
+
+        cpa_curr = cpa(get_cpa_data(ac1), get_cpa_data(ac2))
+
+        if cpa_curr < SEP_MIN_HOR:
+            reward = CPA_PENALTY
+        elif action == "LNAV":
+            reward = 1
+        else:
+            reward = 0
+
+        return False, reward
+
 
 def engage_lnav(ac: str):
     stack.stack(f"LNAV {ac} ON")
