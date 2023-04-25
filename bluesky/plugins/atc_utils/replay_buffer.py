@@ -2,6 +2,7 @@ import random
 import numpy as np
 from collections import deque
 from bluesky.plugins.atc_utils.main_utils.state import State
+from bluesky.plugins.atc_utils.settings import BUFFER_SIZE
 
 
 class ReplayBuffer(object):
@@ -9,7 +10,7 @@ class ReplayBuffer(object):
     This class represents the buffer used for experience replay.
     """
     def __init__(self):
-        self.experience_buffer = deque(maxlen=1000000)
+        self.experience_buffer = deque(maxlen=BUFFER_SIZE)
 
     def store_experience(self, state: State, action: int, reward: int, next_state: State):
         """
