@@ -189,8 +189,8 @@ def update():
                 current_state = get_current_state(ac1, ac2)
 
                 # the reward is based on the current state, so can be taken directly from info of the simulator
-                # LoS, reward = du.get_reward(ac1, ac2, cpa_dist)
-                LoS, reward = du.get_reward_lnav_incentive(ac1, ac2, action)
+                LoS, reward = du.get_reward(ac1, ac2, cpa_dist)
+                # LoS, reward = du.get_reward_lnav_incentive(ac1, ac2, action)
                 TOTAL_REWARD += reward
 
                 if LoS:
