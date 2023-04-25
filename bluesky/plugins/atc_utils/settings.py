@@ -9,7 +9,8 @@ CONFLICT_LIMIT = 20             # NOTE: rather randomly selected
 TRAIN_INTERVAL = 2              # the number of episodes before retraining the network
 TARGET_INTERVAL = 100           # the number of episodes before updating the target network
 GEN_INTERVAL = 360.0            # time (seconds) it takes between spawn calls (180 or 360)
-BUFFER_SIZE = 1000              # approx 1/50 of total number of instructions
+BUFFER_SIZE = 1000              # approx 1/50 of total number of instructions (OG is 1,000,000)
+BATCH_SIZE = 32                 # batch size (initial training was with 128)
 
 # DQN exploration parameters
 MAX_EPSILON = 1.0               # maximum for exploration parameter

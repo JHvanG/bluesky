@@ -2,7 +2,7 @@ import random
 import numpy as np
 from collections import deque
 from bluesky.plugins.atc_utils.main_utils.state import State
-from bluesky.plugins.atc_utils.settings import BUFFER_SIZE
+from bluesky.plugins.atc_utils.settings import BATCH_SIZE, BUFFER_SIZE
 
 
 class ReplayBuffer(object):
@@ -32,7 +32,7 @@ class ReplayBuffer(object):
 
         :return: a list of experiences (state, action, reward, next state)
         """
-        batch_size = min(128, len(self.experience_buffer))
+        batch_size = min(BATCH_SIZE, len(self.experience_buffer))
         sampled_experience_batch = random.sample(self.experience_buffer, batch_size)
 
         state_batch = []
