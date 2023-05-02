@@ -32,8 +32,8 @@ from bluesky.plugins.atc_utils.settings import EVAL_COOLDOWN, EPISODE_LIMIT, TIM
 # EXPERIMENT_NAME = "_ESWtran_CPAReward_{}train_{}update_{}spaced_{}alert_{}decay_{}epsilon".format(TRAIN_INTERVAL, TARGET_INTERVAL, GEN_INTERVAL, SEP_REP_HOR, EPSILON_DECAY, MIN_EPSILON).replace(".", "_")
 # EXPERIMENT_NAME = "_ESWtran_LNAVReward_{}train_{}update_{}spaced_{}alert_{}decay_{}epsilon".format(TRAIN_INTERVAL, TARGET_INTERVAL, GEN_INTERVAL, SEP_REP_HOR, EPSILON_DECAY, MIN_EPSILON).replace(".", "_")
 # EXPERIMENT_NAME = "_SWtran_LNAVReward_Random_{}train_{}update_{}spaced_{}alert_{}decay_{}epsilon".format(TRAIN_INTERVAL, TARGET_INTERVAL, GEN_INTERVAL, SEP_REP_HOR, EPSILON_DECAY, MIN_EPSILON).replace(".", "_")
-# EXPERIMENT_NAME = "_SWtran_CPAReward_Random_{}batch_{}buffer_{}train_{}update_{}spaced_{}alert_{}decay_{}epsilon".format(BATCH_SIZE, BUFFER_SIZE, TRAIN_INTERVAL, TARGET_INTERVAL, GEN_INTERVAL, SEP_REP_HOR, EPSILON_DECAY, MIN_EPSILON).replace(".", "_")
-EXPERIMENT_NAME = "_SWtran_LNAVReward_Random_{}batch_{}buffer_{}train_{}update_{}spaced_{}alert_{}decay_{}epsilon".format(BATCH_SIZE, BUFFER_SIZE, TRAIN_INTERVAL, TARGET_INTERVAL, GEN_INTERVAL, SEP_REP_HOR, EPSILON_DECAY, MIN_EPSILON).replace(".", "_")
+EXPERIMENT_NAME = "_SWtran_CPAReward_Random_{}batch_{}buffer_{}train_{}update_{}spaced_{}alert_{}decay_{}epsilon".format(BATCH_SIZE, BUFFER_SIZE, TRAIN_INTERVAL, TARGET_INTERVAL, GEN_INTERVAL, SEP_REP_HOR, EPSILON_DECAY, MIN_EPSILON).replace(".", "_")
+# EXPERIMENT_NAME = "_SWtran_LNAVReward_Random_{}batch_{}buffer_{}train_{}update_{}spaced_{}alert_{}decay_{}epsilon".format(BATCH_SIZE, BUFFER_SIZE, TRAIN_INTERVAL, TARGET_INTERVAL, GEN_INTERVAL, SEP_REP_HOR, EPSILON_DECAY, MIN_EPSILON).replace(".", "_")
 
 
 EPISODE_COUNTER = 0                         # counter to keep track of how many episodes have passed
