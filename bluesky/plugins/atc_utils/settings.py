@@ -1,7 +1,7 @@
 
 # Experiment settings
 SAVE_RESULTS = True             # boolean to dictate whether results are written to the csv
-LOAD_WEIGHTS = False             # boolean to dictate whether previous weights should be loaded
+LOAD_WEIGHTS = False            # boolean to dictate whether previous weights should be loaded
 EVAL_COOLDOWN = 4               # cooldown to let action take effect before applying reward
 EPISODE_LIMIT = 6500            # limits the amount of episodes
 TIME_LIMIT = 720                # 1440 updates equates to approximately 2 hours of simulation time
@@ -9,8 +9,11 @@ CONFLICT_LIMIT = 20             # NOTE: rather randomly selected
 TRAIN_INTERVAL = 2              # the number of episodes before retraining the network
 TARGET_INTERVAL = 100           # the number of episodes before updating the target network
 GEN_INTERVAL = 360.0            # time (seconds) it takes between spawn calls (180 or 360)
-BUFFER_SIZE = 1000             # in Mnih approx 1/50 of total number of instructions (OG is 1,000,000)
+BUFFER_SIZE = 1000              # in Mnih approx 1/50 of total number of instructions (OG is 1,000,000)
 BATCH_SIZE = 32                 # batch size (initial training was with 128)
+# LOSS_FUNCTION = "mse"           # the loss function is mse, but then this should be clipped
+LOSS_FUNCTION = "huber"          # huber loss is similar to clipping MSE and adds stability
+
 
 # DQN exploration parameters
 MAX_EPSILON = 1.0               # maximum for exploration parameter

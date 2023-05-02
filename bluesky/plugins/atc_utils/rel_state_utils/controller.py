@@ -8,7 +8,7 @@ from keras.layers import Dense, Input
 
 from bluesky.plugins.atc_utils.rel_state_utils.state import State
 from bluesky.plugins.atc_utils.replay_buffer import ReplayBuffer
-from bluesky.plugins.atc_utils.settings import LOAD_WEIGHTS, MAX_EPSILON, MIN_EPSILON, EPSILON_DECAY
+from bluesky.plugins.atc_utils.settings import LOAD_WEIGHTS, MAX_EPSILON, MIN_EPSILON, EPSILON_DECAY, LOSS_FUNCTION
 
 
 class Controller(object):
@@ -139,7 +139,11 @@ class Controller(object):
         q_net.add(Dense(64, input_dim=11, activation='relu', kernel_initializer='he_uniform'))
         q_net.add(Dense(32, activation='relu', kernel_initializer='he_uniform'))
         q_net.add(Dense(3, activation='linear', kernel_initializer='he_uniform'))
-        q_net.compile(loss="mse", optimizer=tf.optimizers.Adam(learning_rate=0.001))
+        if LOSS_FUNCTION == "huber":
+            print("loading with Huber loss")
+            q_net.compile(loss=keras.losses.Huber(delta=1.0), optimizer=tf.optimizers.Adam(learning_rate=0.001))
+        else:
+            q_net.compile(loss="mse", optimizer=tf.optimizers.Adam(learning_rate=0.001))
         print(q_net.summary())
 
         return q_net
