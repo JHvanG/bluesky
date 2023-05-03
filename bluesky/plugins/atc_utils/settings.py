@@ -13,6 +13,8 @@ BUFFER_SIZE = 10000             # in Mnih approx 1/50 of total number of instruc
 BATCH_SIZE = 64                 # batch size (initial training was with 128)
 # LOSS_FUNCTION = "mse"           # the loss function is mse, but then this should be clipped
 LOSS_FUNCTION = "huber"          # huber loss is similar to clipping MSE and adds stability
+# REWARD_FUNCTION = "LNAV"
+REWARD_FUNCTION = "CPA"
 
 
 # DQN exploration parameters
