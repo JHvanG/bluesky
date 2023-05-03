@@ -14,9 +14,9 @@ from bluesky.plugins.atc_utils.settings import GEN_INTERVAL, VARYING_SPAWN
 
 
 ROUTES = "routes/"
-# DEFINITION = "route_definition.json"
+DEFINITION = "route_definition.json"
 # DEFINITION = "route_definition_south_west.json"
-DEFINITION = "route_definition_equal.json"
+# DEFINITION = "route_definition_equal.json"
 ACID = 0
 MAX_AC = 20
 ELEMENT_COUNTER = 0
@@ -231,25 +231,25 @@ def update():
     #     print("AC{}_{} loaded flightplan: {}".format(ACID - 1, traf.ap.route[idx].wpname))
 
     # uncomment for spawining after one another
-    # if n_ac < MAX_AC:
-    #
-    #     trans, star, add = select_approach()
-    #     # print(trans, star)
-    #     flightpath = read_approach_procedure(trans, star)
-    #     spawn_aircraft(flightpath, add)
+    if n_ac < MAX_AC:
+
+        trans, star, add = select_approach()
+        # print(trans, star)
+        flightpath = read_approach_procedure(trans, star)
+        spawn_aircraft(flightpath, add)
 
     # uncomment for spawning at the same time
-    if n_ac < MAX_AC - 1:
-        # randomly select spawning order
-        trans1, star1, add1 = select_approach()
-        trans2, star2, add2 = select_approach()
-
-        flightpath1 = read_approach_procedure(trans1, star1)
-        flightpath2 = read_approach_procedure(trans2, star2)
-
-        # spawn with a random variation to initial point
-        spawn_aircraft(flightpath1, add1)
-        spawn_aircraft(flightpath2, add2)
+    # if n_ac < MAX_AC - 1:
+    #     # randomly select spawning order
+    #     trans1, star1, add1 = select_approach()
+    #     trans2, star2, add2 = select_approach()
+    #
+    #     flightpath1 = read_approach_procedure(trans1, star1)
+    #     flightpath2 = read_approach_procedure(trans2, star2)
+    #
+    #     # spawn with a random variation to initial point
+    #     spawn_aircraft(flightpath1, add1)
+    #     spawn_aircraft(flightpath2, add2)
 
     return
 

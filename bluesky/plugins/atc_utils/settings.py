@@ -8,7 +8,7 @@ TIME_LIMIT = 720                # 1440 updates equates to approximately 2 hours 
 CONFLICT_LIMIT = 20             # NOTE: rather randomly selected
 TRAIN_INTERVAL = 2              # the number of episodes before retraining the network
 TARGET_INTERVAL = 100           # the number of episodes before updating the target network
-GEN_INTERVAL = 360.0            # time (seconds) it takes between spawn calls (180 or 360)
+GEN_INTERVAL = 180.0            # time (seconds) it takes between spawn calls (180 for 3 after one another or 360 for two on equal dist)
 BUFFER_SIZE = 10000             # in Mnih approx 1/50 of total number of instructions (OG is 1,000,000)
 BATCH_SIZE = 64                 # batch size (initial training was with 128)
 # LOSS_FUNCTION = "mse"           # the loss function is mse, but then this should be clipped
@@ -40,4 +40,4 @@ LoS_PENALTY = -10               # penalty for losing separation
 SEP_REWARD = 5                  # reward for attaining separation
 
 # Generation settings
-VARYING_SPAWN = True           # boolean to dictate whether there is randomness in the spawn of an aircraft
+VARYING_SPAWN = False           # boolean to dictate whether there is randomness in the spawn of an aircraft
