@@ -10,7 +10,7 @@ TRAIN_INTERVAL = 2              # the number of episodes before retraining the n
 TARGET_INTERVAL = 100           # the number of episodes before updating the target network
 GEN_INTERVAL = 360.0            # time (seconds) it takes between spawn calls (180 or 360)
 BUFFER_SIZE = 1000              # in Mnih approx 1/50 of total number of instructions (OG is 1,000,000)
-BATCH_SIZE = 32                 # batch size (initial training was with 128)
+BATCH_SIZE = 128                 # batch size (initial training was with 128)
 # LOSS_FUNCTION = "mse"           # the loss function is mse, but then this should be clipped
 LOSS_FUNCTION = "huber"          # huber loss is similar to clipping MSE and adds stability
 
