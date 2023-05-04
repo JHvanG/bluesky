@@ -2,7 +2,8 @@ import os
 import csv
 from bluesky import stack, traf
 from bluesky.plugins.atc_utils import prox_util as pu
-from bluesky.plugins.atc_utils.settings import SEP_MIN_HOR, HDG_CHANGE, SAVE_RESULTS, CPA_PENALTY, LoS_PENALTY, SEP_REWARD
+from bluesky.plugins.atc_utils.settings import SEP_MIN_HOR, HDG_CHANGE, SAVE_RESULTS, \
+                                                CPA_PENALTY, LoS_PENALTY, SEP_REWARD, LNAV_REWARD
 from cpa.closest_point_of_approach import closest_point_of_approach as cpa
 
 
@@ -113,7 +114,7 @@ def get_reward_lnav_incentive(ac1: str, ac2: str, action: str) -> (bool, float):
         if cpa_curr < SEP_MIN_HOR:
             reward = CPA_PENALTY
         elif action == "LNAV":
-            reward = 1
+            reward = LNAV_REWARD
         else:
             reward = 0
 

@@ -8,7 +8,7 @@ from bluesky.tools.aero import ft
 from bluesky.tools import geo, areafilter
 
 from bluesky.plugins.atc_utils import prox_util as pu
-from cpa.closest_point_of_approach import closest_point_of_approach
+from cpa.closest_point_of_approach import cpa_for_playground, closest_point_of_approach
 
 ### Initialization function of your plugin. Do not change the name of this
 ### function, as it is the way BlueSky recognises this file as a plugin.
@@ -41,18 +41,18 @@ def init_plugin():
 
     stackfunctions = {
         # The command name for your function
-        'PLAYGROUND': [
+        'CPAPOINTS': [
             # A short usage string. This will be printed if you type HELP <name> in the BlueSky console
-            'PLAYGROUND Airport/runway',
+            'CPAPOINTS',
 
             # A list of the argument types your function accepts. For a description of this, see ...
             'txt',
 
             # The name of your function in this plugin
-            go,
+            cpapoints,
 
             # a longer help text of your function.
-            'Playground for testing random stuff.']
+            'Draws points used for measuring cpa']
     }
 
     stack.stack("CRE AC1, A320, EHAM, 45, 5000, 220")
@@ -74,9 +74,25 @@ def update():
 
     print("Closest distance: {} nm".format(closest_point_of_approach(ac1, ac2)))
 
+
 def reset():
     pass
 
+
 ### Other functions of your plugin
-def go(rwyname):
-    pass
+def cpapoints(x=0):
+    idx1 = traf.id.index("AC1")
+    idx2 = traf.id.index("AC2")
+
+    ac1 = (traf.lat[idx1], traf.lon[idx1], traf.gsnorth[idx1], traf.gseast[idx1])
+    ac2 = (traf.lat[idx2], traf.lon[idx2], traf.gsnorth[idx2], traf.gseast[idx2])
+
+    ac1_pts, ac2_pts, dists = cpa_for_playground(ac1, ac2)
+
+    idx = 0
+
+    for (lat1, lon1), (lat2, lon2), dist in zip(ac1_pts, ac2_pts, dists):
+        stack.stack("LINE {} {} {} {} {}".format(idx, lat1, lon1, lat2, lon2))
+        if dist == min(dists):
+            stack.stack("COLOUR {} RED".format(idx))
+        idx += 1

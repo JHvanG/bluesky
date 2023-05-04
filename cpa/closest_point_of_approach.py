@@ -13,6 +13,48 @@ def update_pos(lat, lon, gsnorth, gseast, dt):
     return lat, lon
 
 
+def cpa_for_playground(ac1: tuple[float, float, float, float], ac2: tuple[float, float, float, float]) -> tuple[list, list, list]:
+    """
+    duplicate function which returns more for drawing.
+
+    :param ac1: lat, lon, gsnorth, gseast       [ddeg, ddeg, m/s, m/s]
+    :param ac2: lat, lon, gsnorth, gseast       [ddeg, ddeg, m/s, m/s]
+    :return: three lists of points and their distance between
+    """
+
+    dt = 10             # seconds
+    step = 0            # counts the number of steps taken
+    max_steps = 30      # enough for 5 minutes of planning ahead
+
+    lat1, lon1, gsnorth1, gseast1 = ac1
+    lat2, lon2, gsnorth2, gseast2 = ac2
+
+    ac1_pts = []
+    ac2_pts = []
+    dist = []
+
+    _, min_dist = qdrdist(lat1, lon1, lat2, lon2)
+
+    while step <= max_steps:
+        step += 1
+
+        lat1, lon1 = update_pos(lat1, lon1, gsnorth1, gseast1, dt)
+        lat2, lon2 = update_pos(lat2, lon2, gsnorth2, gseast2, dt)
+
+        ac1_pts.append((lat1, lon1))
+        ac2_pts.append((lat2, lon2))
+
+        _, cur_dist = qdrdist(lat1, lon1, lat2, lon2)
+        dist.append(cur_dist)
+
+        if cur_dist < min_dist:
+            min_dist = cur_dist
+        else:
+            return ac1_pts, ac2_pts, dist
+
+    return ac1_pts, ac2_pts, dist
+
+
 def closest_point_of_approach(ac1: tuple[float, float, float, float], ac2: tuple[float, float, float, float]) -> float:
     """
     This function gives a discretized solution to the Closest Point of Approach problem. This indicates the point where
