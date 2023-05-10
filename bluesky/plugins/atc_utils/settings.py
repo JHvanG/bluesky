@@ -14,9 +14,9 @@ TARGET_INTERVAL = 100           # the number of episodes before updating the tar
 BUFFER_SIZE = 1000              # in Mnih approx 1/50 of total number of instructions (OG is 1,000,000)
 BATCH_SIZE = 64                 # batch size (initial training was with 128)
 # LOSS_FUNCTION = "mse"           # the loss function is mse, but then this should be clipped
-LOSS_FUNCTION = "huber"          # huber loss is similar to clipping MSE and adds stability
-# REWARD_FUNCTION = "LNAV"      # LNAV reward incentivises the agent to not do anything
-REWARD_FUNCTION = "CPA"         # CPA reward prioritises conflict avoidance over efficiency
+LOSS_FUNCTION = "huber"         # huber loss is similar to clipping MSE and adds stability
+REWARD_FUNCTION = "LNAV"        # LNAV reward incentivises the agent to not do anything
+# REWARD_FUNCTION = "CPA"         # CPA reward prioritises conflict avoidance over efficiency
 
 # Generation settings
 VARYING_SPAWN = True if NUM_TRANS == 2 else False      # boolean to dictate whether there is randomness in the spawn of an aircraft
