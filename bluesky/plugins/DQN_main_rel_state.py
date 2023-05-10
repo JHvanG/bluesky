@@ -2,8 +2,6 @@
 This is the main plugin for the DQN-based controller agent, using the center-of-mass, relative state definition.
 """
 
-import os
-import csv
 import time
 
 # Import the global bluesky objects. Uncomment the ones you need
@@ -17,10 +15,8 @@ from bluesky.plugins.atc_utils import dqn_util as du
 from cpa import closest_point_of_approach as cpa
 from bluesky.plugins.atc_utils.settings import EVAL_COOLDOWN, EPISODE_LIMIT, TIME_LIMIT, \
                                                CONFLICT_LIMIT, TRAIN_INTERVAL, TARGET_INTERVAL, \
-                                               SEP_REP_HOR, EPSILON_DECAY, MIN_EPSILON, \
-                                               NUM_TRANS, SAVE_RESULTS, BATCH_SIZE, BUFFER_SIZE, LOSS_FUNCTION, REWARD_FUNCTION
-
-# LET OP: DE RIVER1D-equal TRANSITION IS VERKORT MET EEN WAYPOINT!!!!!!!
+                                               SEP_REP_HOR, EPSILON_DECAY, MIN_EPSILON, NUM_TRANS, \
+                                               SAVE_RESULTS, BATCH_SIZE, BUFFER_SIZE, LOSS_FUNCTION, REWARD_FUNCTION
 
 EXPERIMENT_NAME = "_{}tran_{}_{}_{}batch_{}buffer_{}train_{}update_{}alert_{}decay_{}epsilon".format(
     NUM_TRANS, REWARD_FUNCTION, LOSS_FUNCTION, BATCH_SIZE, BUFFER_SIZE,
@@ -190,7 +186,13 @@ def update():
                 if LoS:
                     CONFLICTS_IN_COOLDOWN.append((ac1, ac2))
 
-                CONTROLLER.store_experiences(prev_state, action, reward, current_state)
+                # if a conflict has been resolved or resulted in a loss of separation, the done parameter is set to True
+                if not pu.is_within_alert_distance(ac1, ac2) or pu.is_loss_of_separation(ac1, ac2):
+                    done = True
+                else:
+                    done = False
+
+                CONTROLLER.store_experiences(prev_state, action, reward, current_state, done)
 
         # keep actions that were still in cooldown
         if actions_in_cooldown:

@@ -11,12 +11,12 @@ TIME_LIMIT = 720                # 1440 updates equates to approximately 2 hours 
 CONFLICT_LIMIT = 20             # NOTE: rather randomly selected
 TRAIN_INTERVAL = 2              # the number of episodes before retraining the network
 TARGET_INTERVAL = 100           # the number of episodes before updating the target network
-BUFFER_SIZE = 10000             # in Mnih approx 1/50 of total number of instructions (OG is 1,000,000)
+BUFFER_SIZE = 1000              # in Mnih approx 1/50 of total number of instructions (OG is 1,000,000)
 BATCH_SIZE = 64                 # batch size (initial training was with 128)
 # LOSS_FUNCTION = "mse"           # the loss function is mse, but then this should be clipped
 LOSS_FUNCTION = "huber"          # huber loss is similar to clipping MSE and adds stability
-# REWARD_FUNCTION = "LNAV"
-REWARD_FUNCTION = "CPA"
+# REWARD_FUNCTION = "LNAV"      # LNAV reward incentivises the agent to not do anything
+REWARD_FUNCTION = "CPA"         # CPA reward prioritises conflict avoidance over efficiency
 
 # Generation settings
 VARYING_SPAWN = True if NUM_TRANS == 2 else False      # boolean to dictate whether there is randomness in the spawn of an aircraft
@@ -24,7 +24,7 @@ GEN_INTERVAL = 360.0 if NUM_TRANS == 2 else 180.0      # time (seconds) it takes
 
 # DQN exploration parameters
 MAX_EPSILON = 1.0               # maximum for exploration parameter
-MIN_EPSILON = 0.05              # minimum for exploration parameter
+MIN_EPSILON = 0.01              # minimum for exploration parameter
 EPSILON_DECAY = 0.002           # decay per training sequence
 
 # Agent action

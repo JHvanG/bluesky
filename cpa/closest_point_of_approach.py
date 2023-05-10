@@ -45,10 +45,10 @@ def cpa_for_playground(ac1: tuple[float, float, float, float], ac2: tuple[float,
         ac2_pts.append((lat2, lon2))
 
         _, cur_dist = qdrdist(lat1, lon1, lat2, lon2)
-        dist.append(cur_dist)
 
         if cur_dist < min_dist:
             min_dist = cur_dist
+            dist.append(cur_dist)
         else:
             return ac1_pts, ac2_pts, dist
 

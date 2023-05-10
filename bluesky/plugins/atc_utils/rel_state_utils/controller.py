@@ -51,7 +51,7 @@ class Controller(object):
 
         return action
 
-    def store_experiences(self, state: State, act_str: str, reward: int, next_state: State):
+    def store_experiences(self, state: State, act_str: str, reward: int, next_state: State, done: bool):
         """
         This function saves the experience from the current action and its result.
 
@@ -59,9 +59,10 @@ class Controller(object):
         :param act_str: action taken by the aircraft in the conflict as the string command
         :param reward: reward from the taken action
         :param next_state: state reached from the taken action
+        :param done: indicates whether a conflict was resolved or a loss of separation was incurred
         """
         action = self.encoding[act_str]
-        self.replay_buffer.store_experience(state, action, reward, next_state)
+        self.replay_buffer.store_experience(state, action, reward, next_state, done)
         return
 
     def load_experiences(self):
@@ -162,7 +163,7 @@ class Controller(object):
         :param batch: a batch of experiences
         :return: loss of the network
         """
-        state_batch, action_batch, reward_batch, next_state_batch = batch
+        state_batch, action_batch, reward_batch, next_state_batch, done_batch = batch
         current_q = self.model(state_batch).numpy()
         target_q = np.copy(current_q)
         next_q = self.target_model(next_state_batch).numpy()
@@ -171,7 +172,8 @@ class Controller(object):
         for i in range(state_batch.shape[0]):
             target_q_val = reward_batch[i]
 
-            target_q_val += 0.95 * max_next_q[i]
+            if not done_batch[i]:
+                target_q_val += 0.95 * max_next_q[i]
 
             target_q[i][action_batch[i]] = target_q_val
 
