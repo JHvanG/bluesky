@@ -118,6 +118,9 @@ def get_sparse_reward(ac1: str, ac2: str) -> (bool, float):
     :return: boolean indicating whether separation was lost and reward
     """
     global N_LoS
+    global N_INSTRUCTIONS
+
+    N_INSTRUCTIONS += 1
 
     if pu.is_loss_of_separation(ac1, ac2):
         N_LoS += 1
