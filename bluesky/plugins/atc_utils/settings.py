@@ -17,6 +17,11 @@ BATCH_SIZE = 64                 # batch size (initial training was with 128)
 LOSS_FUNCTION = "huber"         # huber loss is similar to clipping MSE and adds stability
 # REWARD_FUNCTION = "LNAV"        # LNAV reward incentivises the agent to not do anything
 REWARD_FUNCTION = "CPA"         # CPA reward prioritises conflict avoidance over efficiency
+# REWARD_FUNCTION = "SPARSE"      # Sparse reward only rewards the agent upon loss of separation or resolving
+
+# Validation variables
+TRAIN_LENGTH = 100              # number of episodes used for training
+VALIDATION_LENGTH = 5           # number of episodes for model validation
 
 # Generation settings
 VARYING_SPAWN = True if NUM_TRANS == 2 else False      # boolean to dictate whether there is randomness in the spawn of an aircraft
@@ -44,5 +49,5 @@ MS_KT_FACTOR = 1.94384449       # m/s * factor converts to kt
 # Reward weights
 CPA_PENALTY = -5                # penalty for reducing the cpa to below minimum separation distance
 LoS_PENALTY = -10               # penalty for losing separation
-SEP_REWARD = 5                  # reward for attaining separation
+SEP_REWARD = 10                 # reward for attaining separation
 LNAV_REWARD = 1               # reward for LNAV reward function that encourages following ones flightplan

@@ -32,10 +32,22 @@ class Controller(object):
         self.num_actions = len(self.encoding)
         self.model = self._create_model()
         self.target_model = self._create_model()
+        self.best_sep_loss = None
 
         if weights_file and LOAD_WEIGHTS:
             self.load_weights(weights_file)
             self.epsilon = MIN_EPSILON
+
+    # TODO: implement this based on the validation results
+    def update_best_weights(self, avg_sep_loss: float, exp_name: str):
+        """
+        This function saves the current model weights if performance on validation proved to be best
+
+        :param avg_sep_loss: float containing the average loss of separation over the last validation sequence.
+        :param exp_name: name of the current experiment
+        """
+        if self.best_sep_loss is None or avg_sep_loss < self.best_sep_loss:
+            self.save_weights(exp_name)
 
     def select_action(self, model_output: list[float]) -> str:
         """
@@ -73,16 +85,17 @@ class Controller(object):
         """
         return self.replay_buffer.sample_batch()
 
-    def act(self, state: State) -> (str, str):
+    def act(self, state: State, validating: bool) -> (str, str):
         """
         Returns actions for the given state.
 
         :param state: current state of the two aircraft in conflict.
+        :param validating: boolean indicating whether the agent is training or validating the current model
         :return: two strings containing the actions to be taken.
         """
 
         # exploration
-        if random.random() < self.epsilon:
+        if not validating and random.random() < self.epsilon:
             # TODO: only do this when training
             action = random.choice(list(self.encoding.keys()))
             return action

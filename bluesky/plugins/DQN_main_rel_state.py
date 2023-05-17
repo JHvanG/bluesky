@@ -5,6 +5,8 @@ This is the main plugin for the DQN-based controller agent, using the center-of-
 import time
 
 # Import the global bluesky objects. Uncomment the ones you need
+import numpy as np
+
 from bluesky.tools import geo
 from bluesky import stack, traf
 
@@ -16,16 +18,21 @@ from cpa import closest_point_of_approach as cpa
 from bluesky.plugins.atc_utils.settings import EVAL_COOLDOWN, EPISODE_LIMIT, TIME_LIMIT, \
                                                CONFLICT_LIMIT, TRAIN_INTERVAL, TARGET_INTERVAL, \
                                                SEP_REP_HOR, EPSILON_DECAY, MIN_EPSILON, NUM_TRANS, \
-                                               SAVE_RESULTS, BATCH_SIZE, BUFFER_SIZE, LOSS_FUNCTION, REWARD_FUNCTION
+                                               SAVE_RESULTS, BATCH_SIZE, BUFFER_SIZE, LOSS_FUNCTION, REWARD_FUNCTION, \
+                                               TRAIN_LENGTH, VALIDATION_LENGTH, SEP_REWARD
 
-EXPERIMENT_NAME = "_{}tran_{}_{}_{}batch_{}buffer_{}train_{}update_{}alert_{}decay_{}epsilon".format(
-    NUM_TRANS, REWARD_FUNCTION, LOSS_FUNCTION, BATCH_SIZE, BUFFER_SIZE,
+EXPERIMENT_NAME = "_{}tran_{}_{}seprew_{}_{}batch_{}buffer_{}train_{}update_{}alert_{}decay_{}epsilon".format(
+    NUM_TRANS, REWARD_FUNCTION, SEP_REWARD, LOSS_FUNCTION, BATCH_SIZE, BUFFER_SIZE,
     TRAIN_INTERVAL, TARGET_INTERVAL, SEP_REP_HOR, EPSILON_DECAY, MIN_EPSILON).replace(".", "_")
 
+# EXPERIMENT_NAME = "blablabla"
 
 EPISODE_COUNTER = 0                         # counter to keep track of how many episodes have passed
+VALIDATION_COUNTER = 0                      # counter to keep track of how many episodes the validation has taken
 START = 0                                   # start time
 TIMER = 0                                   # counter to keep track of how many update calls were made this episode
+
+VALIDATING = False                          # boolean to indicate whether the validation phase has commenced
 
 CONFLICTS_IN_COOLDOWN = []                  # list of aircraft that are currently in conflict with one another
 PREVIOUS_ACTIONS = []                       # buffer for previous actions with the given state and the aircraft pair
@@ -34,6 +41,10 @@ LoS_PAIRS = []                              # list of aircraft that have current
 
 TOTAL_REWARD = 0                            # storage for total obtained reward this episode
 N_CONFLICTS = 0                             # counter for the number of conflicts that have been encountered
+
+VAL_AVG_EP_REWARDS = []                     # list of average rewards for validation episodes
+VAL_EP_CONFLICTS = []                       # list of n conflicts per validation episode
+VAL_EP_LoS = []                             # list of m losses of separation per validation episode
 
 # CONTROLLER = Controller()                 # atc agent based on a DQN
 CONTROLLER = Controller(EXPERIMENT_NAME)    # atc agent based on a DQN
@@ -151,6 +162,11 @@ def update():
     global N_CONFLICTS
     global PREVIOUS_ACTIONS
 
+    # TODO: check for training or testing episode
+    #       For training we do what we do now
+    #       For testing, we remove the randomness from action selection, keep most of the logic but do not train
+    #       we can remove the experience buffer for testing as well
+
     if TIMER == 0:
         print("Plugin reset finished at: {}".format(time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time()))))
         START = time.time()
@@ -179,6 +195,8 @@ def update():
                 # the reward is based on the current state, so can be taken directly from info of the simulator
                 if REWARD_FUNCTION == "LNAV":
                     LoS, reward = du.get_reward_lnav_incentive(ac1, ac2, action)
+                elif REWARD_FUNCTION == "SPARSE":
+                    LoS, reward = du.get_sparse_reward(ac1, ac2)
                 else:
                     LoS, reward = du.get_reward(ac1, ac2, cpa_dist)
                 TOTAL_REWARD += reward
@@ -192,7 +210,8 @@ def update():
                 else:
                     done = False
 
-                CONTROLLER.store_experiences(prev_state, action, reward, current_state, done)
+                if not VALIDATING:
+                    CONTROLLER.store_experiences(prev_state, action, reward, current_state, done)
 
         # keep actions that were still in cooldown
         if actions_in_cooldown:
@@ -215,7 +234,7 @@ def update():
         if not waiting_for_reward(ac1, ac2):
             # instruct aircraft
             state = get_current_state(ac1, ac2)
-            action = CONTROLLER.act(state)
+            action = CONTROLLER.act(state, VALIDATING)
             du.handle_instruction(ac1, action)
 
             # previous actions are maintained to apply rewards in the next state
@@ -243,41 +262,81 @@ def reset():
     global TIMER
     global START
 
-    EPISODE_COUNTER += 1
+    global VALIDATION_COUNTER
+    global VAL_AVG_EP_REWARDS
+    global VAL_EP_CONFLICTS
+    global VAL_EP_LoS
+    global VALIDATING
 
-    print("Episode {} finished".format(EPISODE_COUNTER))
-    print("{} conflicts and {} losses of separation".format(N_CONFLICTS, du.N_LoS))
+    if not VALIDATING:
+        EPISODE_COUNTER += 1
 
-    if EPISODE_COUNTER % TRAIN_INTERVAL == 0:
-        loss = CONTROLLER.train(CONTROLLER.load_experiences())
-        if SAVE_RESULTS:
-            CONTROLLER.save_weights(name=EXPERIMENT_NAME)
+        print("Episode {} finished".format(EPISODE_COUNTER))
+        print("{} conflicts and {} losses of separation".format(N_CONFLICTS, du.N_LoS))
 
-        if EPISODE_COUNTER % TARGET_INTERVAL == 0:
-            print('Episode {}: updating target'.format(EPISODE_COUNTER))
-            CONTROLLER.update_target_model()
+        if EPISODE_COUNTER % TRAIN_INTERVAL == 0:
+            loss = CONTROLLER.train(CONTROLLER.load_experiences())
+            # if SAVE_RESULTS:
+            #     CONTROLLER.save_weights(name=EXPERIMENT_NAME)
 
-        data = {
-            "episode": EPISODE_COUNTER,
-            "loss": loss,
-            "average reward": TOTAL_REWARD / du.N_INSTRUCTIONS,
-            "conflicts": N_CONFLICTS,
-            "duration": round(time.time() - START, 2),
-            "epsilon": CONTROLLER.epsilon
-        }
+            if EPISODE_COUNTER % TARGET_INTERVAL == 0:
+                print('Episode {}: updating target'.format(EPISODE_COUNTER))
+                CONTROLLER.update_target_model()
 
-        du.write_episode_info(data, EXPERIMENT_NAME)
+            data = {
+                "episode": EPISODE_COUNTER,
+                "loss": loss,
+                "average reward": TOTAL_REWARD / du.N_INSTRUCTIONS,
+                "conflicts": N_CONFLICTS,
+                "duration": round(time.time() - START, 2),
+                "epsilon": CONTROLLER.epsilon
+            }
+
+            du.write_episode_info(data, EXPERIMENT_NAME)
+        else:
+            data = {
+                "episode": EPISODE_COUNTER,
+                "loss": None,
+                "average reward": TOTAL_REWARD / du.N_INSTRUCTIONS,
+                "conflicts": N_CONFLICTS,
+                "duration": round(time.time() - START, 2),
+                "epsilon": CONTROLLER.epsilon
+            }
+
+            du.write_episode_info(data, EXPERIMENT_NAME)
     else:
-        data = {
-            "episode": EPISODE_COUNTER,
-            "loss": None,
-            "average reward": TOTAL_REWARD / du.N_INSTRUCTIONS,
-            "conflicts": N_CONFLICTS,
-            "duration": round(time.time() - START, 2),
-            "epsilon": CONTROLLER.epsilon
-        }
+        VALIDATION_COUNTER += 1
+        VAL_AVG_EP_REWARDS.append(TOTAL_REWARD / du.N_INSTRUCTIONS)
+        VAL_EP_CONFLICTS.append(N_CONFLICTS)
+        VAL_EP_LoS.append(du.N_LoS)
+        pass
 
-        du.write_episode_info(data, EXPERIMENT_NAME)
+    # check if we reached a validation point, or, when already validating, if we can stop and save the results
+    if not VALIDATING and EPISODE_COUNTER % TRAIN_LENGTH == 0:
+        print(f"episode: {EPISODE_COUNTER}, going over to validation")
+        VALIDATING = True
+    elif VALIDATING and EPISODE_COUNTER % VALIDATION_LENGTH == 0:
+        VALIDATING = False
+
+        if SAVE_RESULTS:
+            data = {
+                "rewards": np.mean(VAL_AVG_EP_REWARDS),
+                "conflics": np.mean(VAL_EP_CONFLICTS),
+                "LoS": np.mean(VAL_EP_LoS),
+                "Left": du.N_LEFT,
+                "Right": du.N_RIGHT,
+                "LNAV": du.N_LNAV
+            }
+
+            du.write_validation_info(data, EXPERIMENT_NAME)
+            CONTROLLER.update_best_weights(np.mean(VAL_EP_LoS), EXPERIMENT_NAME)
+        else:
+            print(f"Now, i would save:\n {VAL_AVG_EP_REWARDS}\n {VAL_EP_CONFLICTS}\n {VAL_EP_LoS}")
+        print(f"episode: {EPISODE_COUNTER}, going over to training")
+        VALIDATION_COUNTER = 0
+        VAL_AVG_EP_REWARDS = []
+        VAL_EP_CONFLICTS = []
+        VAL_EP_LoS = []
 
     # reset all global variables
     CONFLICTS_IN_COOLDOWN = []

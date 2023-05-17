@@ -65,12 +65,6 @@ def get_reward(ac1: str, ac2: str, cpa_prev: float) -> (bool, float):
     elif not pu.is_within_alert_distance(ac1, ac2):
         return False, SEP_REWARD
     else:
-        # dist_ac = pu.get_distance_to_ac(ac1, ac2)
-        # dist_alert = pu.get_distance_to_alert_border()
-        # return False, min(1, dist_ac / dist_alert)
-
-        # reward = 0 if cpa(get_cpa_data(ac1), get_cpa_data(ac2)) > SEP_MIN_HOR else CPA_PENALTY
-
         cpa_curr = cpa(get_cpa_data(ac1), get_cpa_data(ac2))
 
         if cpa_curr < SEP_MIN_HOR:
@@ -103,12 +97,6 @@ def get_reward_lnav_incentive(ac1: str, ac2: str, action: str) -> (bool, float):
     elif not pu.is_within_alert_distance(ac1, ac2):
         return False, SEP_REWARD
     else:
-        # dist_ac = pu.get_distance_to_ac(ac1, ac2)
-        # dist_alert = pu.get_distance_to_alert_border()
-        # return False, min(1, dist_ac / dist_alert)
-
-        # reward = 0 if cpa(get_cpa_data(ac1), get_cpa_data(ac2)) > SEP_MIN_HOR else CPA_PENALTY
-
         cpa_curr = cpa(get_cpa_data(ac1), get_cpa_data(ac2))
 
         if cpa_curr < SEP_MIN_HOR:
@@ -119,6 +107,27 @@ def get_reward_lnav_incentive(ac1: str, ac2: str, action: str) -> (bool, float):
             reward = 0
 
         return False, reward
+
+
+def get_sparse_reward(ac1: str, ac2: str) -> (bool, float):
+    """
+    This function returns the reward obtained from the action that was taken.
+
+    :param ac1: first aircraft in the conflict
+    :param ac2: second aircraft in the conflict
+    :return: boolean indicating whether separation was lost and reward
+    """
+    global N_LoS
+
+    if pu.is_loss_of_separation(ac1, ac2):
+        N_LoS += 1
+        return True, LoS_PENALTY
+    elif not pu.is_within_alert_distance(ac1, ac2):
+        return False, SEP_REWARD
+    else:
+        reward = 0
+
+    return False, reward
 
 
 def engage_lnav(ac: str):
@@ -215,6 +224,26 @@ def load_state_data(ac: str) -> (float, float, int, int, int):
     return lat, lon, alt, hdg, rte
 
 
+def write_to_csv(data: dict, path, experiment_name):
+    file = path + "training_results_com" + experiment_name + ".csv"
+
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+    file_exists = os.path.isfile(file)
+
+    with open(file, 'a') as f:
+        headers = list(data.keys())
+        writer = csv.DictWriter(f, delimiter=',', lineterminator='\n', fieldnames=headers)
+
+        if not file_exists:
+            writer.writeheader()
+
+        writer.writerow(data)
+
+    return
+
+
 def write_episode_info(data: dict, experiment_name):
     """
     This function simply keeps track of what occured during every episode, saving the actions, loss, conflicts and LoS.
@@ -228,10 +257,6 @@ def write_episode_info(data: dict, experiment_name):
 
     workdir = os.getcwd()
     path = os.path.join(workdir, "results/training_results/")
-    file = path + "training_results_com" + experiment_name + ".csv"
-
-    if not os.path.exists(path):
-        os.makedirs(path)
 
     action_data = {
             "LoS": N_LoS,
@@ -244,15 +269,14 @@ def write_episode_info(data: dict, experiment_name):
 
     contents = data | action_data
 
-    file_exists = os.path.isfile(file)
+    write_to_csv(contents, path, experiment_name)
 
-    with open(file, 'a') as f:
-        headers = list(contents.keys())
-        writer = csv.DictWriter(f, delimiter=',', lineterminator='\n', fieldnames=headers)
+    return
 
-        if not file_exists:
-            writer.writeheader()
 
-        writer.writerow(contents)
+def write_validation_info(data: dict, experiment_name):
+    workdir = os.getcwd()
+    path = os.path.join(workdir, "results/validation_results/")
+    write_to_csv(data, path, experiment_name)
 
     return
