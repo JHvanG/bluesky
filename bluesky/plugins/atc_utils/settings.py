@@ -16,8 +16,8 @@ BATCH_SIZE = 64                 # batch size (initial training was with 128)
 # LOSS_FUNCTION = "mse"           # the loss function is mse, but then this should be clipped
 LOSS_FUNCTION = "huber"         # huber loss is similar to clipping MSE and adds stability
 # REWARD_FUNCTION = "LNAV"        # LNAV reward incentivises the agent to not do anything
-REWARD_FUNCTION = "CPA"         # CPA reward prioritises conflict avoidance over efficiency
-# REWARD_FUNCTION = "SPARSE"      # Sparse reward only rewards the agent upon loss of separation or resolving
+# REWARD_FUNCTION = "CPA"         # CPA reward prioritises conflict avoidance over efficiency
+REWARD_FUNCTION = "SPARSE"      # Sparse reward only rewards the agent upon loss of separation or resolving
 
 # Validation variables
 TRAIN_LENGTH = 100              # number of episodes used for training
