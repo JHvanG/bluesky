@@ -8,16 +8,16 @@ NUM_TRANS = 2                   # either 2 or 3 transitions
 EVAL_COOLDOWN = 4               # cooldown to let action take effect before applying reward
 EPISODE_LIMIT = 6500            # limits the amount of episodes
 TIME_LIMIT = 720                # 1440 updates equates to approximately 2 hours of simulation time
-CONFLICT_LIMIT = 20             # NOTE: rather randomly selected
+CONFLICT_LIMIT = 10             # NOTE: rather randomly selected (was set to 20)
 TRAIN_INTERVAL = 2              # the number of episodes before retraining the network
 TARGET_INTERVAL = 100           # the number of episodes before updating the target network
 BUFFER_SIZE = 10000             # in Mnih approx 1/50 of total number of instructions (OG is 1,000,000)
 BATCH_SIZE = 64                 # batch size (initial training was with 128)
 # LOSS_FUNCTION = "mse"           # the loss function is mse, but then this should be clipped
 LOSS_FUNCTION = "huber"         # huber loss is similar to clipping MSE and adds stability
-# REWARD_FUNCTION = "LNAV"        # LNAV reward incentivises the agent to not do anything
+REWARD_FUNCTION = "LNAV"        # LNAV reward incentivises the agent to not do anything
 # REWARD_FUNCTION = "CPA"         # CPA reward prioritises conflict avoidance over efficiency
-REWARD_FUNCTION = "SPARSE"      # Sparse reward only rewards the agent upon loss of separation or resolving
+# REWARD_FUNCTION = "SPARSE"      # Sparse reward only rewards the agent upon loss of separation or resolving
 
 # Validation variables
 TRAIN_LENGTH = 100              # number of episodes used for training
