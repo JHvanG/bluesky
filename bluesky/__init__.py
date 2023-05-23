@@ -27,9 +27,15 @@ sim = None
 scr = None
 server = None
 
+# DQN experiment parameters
+num_approaches = None
+reward_function = None
+batch_size = None
+buffer_size = None
+
 
 def init(mode='sim', configfile=None, scenfile=None, discoverable=False,
-         gui=None, detached=False, workdir=None, **kwargs):
+         gui=None, detached=False, workdir=None, approaches=2, reward="CPA", batch=64, buffer=10000, **kwargs):
     ''' Initialize bluesky modules.
 
         Arguments:
@@ -42,6 +48,18 @@ def init(mode='sim', configfile=None, scenfile=None, discoverable=False,
         - detached: Run with or without networking (only when mode is sim) [True/False]
         - workdir: Pass a custom working directory (instead of cwd or ~/bluesky)
     '''
+
+    global num_approaches
+    global reward_function
+    global batch_size
+    global buffer_size
+
+    print(approaches, reward, batch, buffer, scenfile)
+
+    num_approaches = approaches
+    reward_function = reward
+    batch_size = batch
+    buffer_size = buffer
 
     # Argument checking
     assert mode in ('sim', 'client', 'server'), f'BlueSky init: Unrecognised mode {mode}. '\
@@ -82,7 +100,7 @@ def init(mode='sim', configfile=None, scenfile=None, discoverable=False,
     if mode == 'server':
         global server
         from bluesky.network.server import Server
-        server = Server(discoverable, configfile, scenfile)
+        server = Server(discoverable, approaches, reward, batch, buffer, configfile, scenfile)
 
     # The remaining objects are only instantiated in the sim nodes
     if mode == 'sim':

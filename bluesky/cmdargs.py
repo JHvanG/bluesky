@@ -49,6 +49,11 @@ def parse():
     parser.add_argument("--workdir", dest="workdir",
                         help="Set BlueSky working directory (if other than cwd or ~/bluesky).")
 
+    parser.add_argument("--approaches", type=int, choices=[2, 3], dest="approaches", help="Define number of approaches (2 or 3)")
+    parser.add_argument("--reward", type=str, choices=["CPA", "LNAV", "SPARSE"], dest="reward", help="Define reward function (CPA, LNAV or SPARSE)")
+    parser.add_argument("--batch", type=int, choices=[32, 64, 128], dest="batch", help="Define batch size")
+    parser.add_argument("--buffer", type=int, choices=[1000, 10000, 100000, 1000000], dest="buffer", help="Define buffer size")
+
     cmdargs = parser.parse_args()
 
     return vars(cmdargs)

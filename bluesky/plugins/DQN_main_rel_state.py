@@ -7,6 +7,8 @@ import time
 # Import the global bluesky objects. Uncomment the ones you need
 import numpy as np
 
+import bluesky as bs
+
 from bluesky.tools import geo
 from bluesky import stack, traf
 
@@ -24,8 +26,6 @@ from bluesky.plugins.atc_utils.settings import EVAL_COOLDOWN, EPISODE_LIMIT, TIM
 EXPERIMENT_NAME = "_{}tran_{}_{}seprew_{}_{}batch_{}buffer_{}train_{}update_{}alert_{}decay_{}epsilon".format(
     NUM_TRANS, REWARD_FUNCTION, SEP_REWARD, LOSS_FUNCTION, BATCH_SIZE, BUFFER_SIZE,
     TRAIN_INTERVAL, TARGET_INTERVAL, SEP_REP_HOR, EPSILON_DECAY, MIN_EPSILON).replace(".", "_")
-
-# EXPERIMENT_NAME = "blablabla"
 
 EPISODE_COUNTER = 0                         # counter to keep track of how many episodes have passed
 VALIDATION_COUNTER = 0                      # counter to keep track of how many episodes the validation has taken
@@ -45,6 +45,9 @@ N_CONFLICTS = 0                             # counter for the number of conflict
 VAL_AVG_EP_REWARDS = []                     # list of average rewards for validation episodes
 VAL_EP_CONFLICTS = []                       # list of n conflicts per validation episode
 VAL_EP_LoS = []                             # list of m losses of separation per validation episode
+VAL_EP_LEFT = []                            # list of counts for left action in validation episodes
+VAL_EP_RIGHT = []                           # list of counts for right action in validation episodes
+VAL_EP_LNAV = []                            # list of counts for LNAV action in validation episodes
 
 # CONTROLLER = Controller()                 # atc agent based on a DQN
 CONTROLLER = Controller(EXPERIMENT_NAME)    # atc agent based on a DQN
@@ -55,6 +58,7 @@ CONTROLLER = Controller(EXPERIMENT_NAME)    # atc agent based on a DQN
 def init_plugin():
     # Addtional initilisation code
     print("Writing with extension: {}".format(EXPERIMENT_NAME))
+    print(f"{NUM_TRANS} approaches\n{REWARD_FUNCTION} reward\n{BATCH_SIZE} batch\n{BUFFER_SIZE} buffer\n")
 
     # Configuration parameters
     config = {
@@ -265,6 +269,9 @@ def reset():
     global VALIDATION_COUNTER
     global VAL_AVG_EP_REWARDS
     global VAL_EP_CONFLICTS
+    global VAL_EP_RIGHT
+    global VAL_EP_LEFT
+    global VAL_EP_LNAV
     global VAL_EP_LoS
     global VALIDATING
 
@@ -306,10 +313,13 @@ def reset():
             du.write_episode_info(data, EXPERIMENT_NAME)
     else:
         VALIDATION_COUNTER += 1
+
         VAL_AVG_EP_REWARDS.append(TOTAL_REWARD / du.N_INSTRUCTIONS)
         VAL_EP_CONFLICTS.append(N_CONFLICTS)
         VAL_EP_LoS.append(du.N_LoS)
-        pass
+        VAL_EP_LEFT.append(du.N_LEFT)
+        VAL_EP_RIGHT.append(du.N_RIGHT)
+        VAL_EP_LNAV.append(du.N_LNAV)
 
     # check if we reached a validation point, or, when already validating, if we can stop and save the results
     if not VALIDATING and EPISODE_COUNTER % TRAIN_LENGTH == 0:
@@ -321,22 +331,32 @@ def reset():
         if SAVE_RESULTS:
             data = {
                 "rewards": np.mean(VAL_AVG_EP_REWARDS),
-                "conflics": np.mean(VAL_EP_CONFLICTS),
+                "rewardsstd": np.std(VAL_AVG_EP_REWARDS),
+                "conflicts": np.mean(VAL_EP_CONFLICTS),
                 "LoS": np.mean(VAL_EP_LoS),
-                "Left": du.N_LEFT,
-                "Right": du.N_RIGHT,
-                "LNAV": du.N_LNAV
+                "LoSstd": np.std(VAL_EP_LoS),
+                "Left": np.mean(VAL_EP_LEFT),
+                "Leftstd": np.std(VAL_EP_LEFT),
+                "Right": np.mean(VAL_EP_RIGHT),
+                "Rightstd": np.std(VAL_EP_RIGHT),
+                "LNAV": np.mean(VAL_EP_LNAV),
+                "LNAVstd": np.std(VAL_EP_LNAV)
             }
 
             du.write_validation_info(data, EXPERIMENT_NAME)
             CONTROLLER.update_best_weights(np.mean(VAL_EP_LoS), EXPERIMENT_NAME)
         else:
             print(f"Now, i would save:\n {VAL_AVG_EP_REWARDS}\n {VAL_EP_CONFLICTS}\n {VAL_EP_LoS}")
+
         print(f"episode: {EPISODE_COUNTER}, going over to training")
+
         VALIDATION_COUNTER = 0
         VAL_AVG_EP_REWARDS = []
         VAL_EP_CONFLICTS = []
         VAL_EP_LoS = []
+        VAL_EP_LEFT = []
+        VAL_EP_LNAV = []
+        VAL_EP_RIGHT = []
 
     # reset all global variables
     CONFLICTS_IN_COOLDOWN = []

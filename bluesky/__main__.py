@@ -26,7 +26,6 @@ def main():
     # also advise latest version
     missingmodules = {"OpenGL": "pyopengl"}
 
-
     # Catch import errors
     try:
         # Parse command-line arguments

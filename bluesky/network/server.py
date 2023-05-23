@@ -31,7 +31,7 @@ def split_scenarios(scentime, scencmd):
 class Server(Thread):
     ''' Implementation of the BlueSky simulation server. '''
 
-    def __init__(self, discovery, altconfig=None, startscn=None):
+    def __init__(self, discovery, approaches: int, reward: str, batch: int, buffer: int, altconfig=None, startscn=None):
         super().__init__()
         self.spawned_processes = list()
         self.running = True
@@ -46,6 +46,10 @@ class Server(Thread):
         # Information to pass on to spawned nodes
         self.altconfig = altconfig
         self.startscn = startscn
+        self.approaches = approaches
+        self.reward = reward
+        self.batch = batch
+        self.buffer = buffer
 
         if bs.settings.enable_discovery or discovery:
             self.discovery = Discovery(self.host_id, is_client=False)
@@ -63,9 +67,9 @@ class Server(Thread):
         for _ in range(count):
             args = [sys.executable, '-m', 'bluesky', '--sim']
             if self.altconfig:
-                args.extend(['--configfile', self.altconfig])
+                args.extend(['--configfile', self.altconfig, "--approaches", str(self.approaches), "--reward", self.reward, "--batch", str(self.batch), "--buffer", str(self.buffer)])
             if startscn:
-                args.extend(['--scenfile', startscn])
+                args.extend(['--scenfile', startscn, "--approaches", str(self.approaches), "--reward", self.reward, "--batch", str(self.batch), "--buffer", str(self.buffer)])
             p = Popen(args)
             self.spawned_processes.append(p)
 
