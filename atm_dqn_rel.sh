@@ -1,6 +1,7 @@
 #!/bin/bash
 #SBATCH --time=6-00:00:00
 #SBATCH --mem=2G
+#SBATCH --ntasks=2
 #SBATCH --partition=regular
 #SBATCH --mail-type=FAIL,END
 #SBATCH --mail-user=j.h.van.gelder.1@student.rug.nl
