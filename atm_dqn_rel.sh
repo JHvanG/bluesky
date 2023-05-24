@@ -12,4 +12,5 @@ source /scratch/$USER/.envs/bluesky/bin/activate
  
 python3 --version
 which python3
-python3 BlueSky.py --scenfile=dqn_relative.scn --headless
+python3 BlueSky.py --scenfile=dqn_relative.scn --headless --approaches=2 --reward=LNAV --batch=32 --buffer=10000
+python3 BlueSky.py --scenfile=dqn_relative.scn --headless --approaches=2 --reward=LNAV --batch=32 --buffer=100000
