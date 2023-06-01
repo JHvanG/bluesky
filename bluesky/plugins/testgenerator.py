@@ -19,6 +19,7 @@ ROUTES = "routes/"
 if NUM_TRANS == 2:
     DEFINITION = "route_definition_equal.json"
 else:
+    # TODO: test this with 3 appr run
     DEFINITION = "route_definition.json"
 
 ACID = 0
@@ -288,9 +289,13 @@ def load_all_approaches() -> dict[str: list[str]]:
 
         for rwy in list(data.keys()):
             for transition in list(data[rwy].keys()):
+                if "-shortened" in transition:
+                    arrival_id = transition.replace("-shortened", "")
+                else:
+                    arrival_id = transition
                 arrivals = []
                 for arrival in data[rwy][transition]:
-                    arrivals.append(transition + "-" + arrival)
+                    arrivals.append(arrival_id + "-" + arrival)
                 approaches[rwy + "-" + transition] = arrivals
 
     return approaches
@@ -299,8 +304,10 @@ def load_all_approaches() -> dict[str: list[str]]:
 ### Other functions of your plugin
 def draw(x=0):
     """
-        This function draws the approaches on the screen.
-        """
+    This function draws the approaches on the screen.
+    """
+    global ELEMENT_COUNTER
+
     approaches = load_all_approaches()
 
     for transition in list(approaches.keys()):
@@ -309,7 +316,6 @@ def draw(x=0):
         # first = True
 
         for prev, cur in zip(list(transition_plan.keys()), list(transition_plan.keys())[1:]):
-            global ELEMENT_COUNTER
             stack.stack("LINE {} {} {}".format(ELEMENT_COUNTER, prev, cur))
             ELEMENT_COUNTER += 1
 
@@ -321,8 +327,9 @@ def draw(x=0):
         #         flightplan = read_fpl_from_txt_file(star) | first_wpt
         #
         #     for prev, cur in zip(list(flightplan.keys()), list(flightplan.keys())[1:]):
-        #         global ELEMENT_COUNTER
         #         stack.stack("LINE {} {} {}".format(ELEMENT_COUNTER, prev, cur))
+        #         if prev not in list(transition_plan.keys()):
+        #             stack.stack("COLOUR {} RED".format(ELEMENT_COUNTER))
         #         ELEMENT_COUNTER += 1
 
     return

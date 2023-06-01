@@ -283,11 +283,8 @@ def reset():
 
         if EPISODE_COUNTER % TRAIN_INTERVAL == 0:
             loss = CONTROLLER.train(CONTROLLER.load_experiences())
-            # if SAVE_RESULTS:
-            #     CONTROLLER.save_weights(name=EXPERIMENT_NAME)
 
             if EPISODE_COUNTER % TARGET_INTERVAL == 0:
-                print('Episode {}: updating target'.format(EPISODE_COUNTER))
                 CONTROLLER.update_target_model()
 
             data = {
@@ -300,6 +297,7 @@ def reset():
             }
 
             du.write_episode_info(data, EXPERIMENT_NAME)
+
         else:
             data = {
                 "episode": EPISODE_COUNTER,
@@ -313,7 +311,6 @@ def reset():
             du.write_episode_info(data, EXPERIMENT_NAME)
     else:
         VALIDATION_COUNTER += 1
-
         VAL_AVG_EP_REWARDS.append(TOTAL_REWARD / du.N_INSTRUCTIONS)
         VAL_EP_CONFLICTS.append(N_CONFLICTS)
         VAL_EP_LoS.append(du.N_LoS)
@@ -325,28 +322,26 @@ def reset():
     if not VALIDATING and EPISODE_COUNTER % TRAIN_LENGTH == 0:
         print(f"episode: {EPISODE_COUNTER}, going over to validation")
         VALIDATING = True
-    elif VALIDATING and EPISODE_COUNTER % VALIDATION_LENGTH == 0:
+
+    elif VALIDATING and VALIDATION_COUNTER % VALIDATION_LENGTH == 0:
         VALIDATING = False
 
-        if SAVE_RESULTS:
-            data = {
-                "rewards": np.mean(VAL_AVG_EP_REWARDS),
-                "rewardsstd": np.std(VAL_AVG_EP_REWARDS),
-                "conflicts": np.mean(VAL_EP_CONFLICTS),
-                "LoS": np.mean(VAL_EP_LoS),
-                "LoSstd": np.std(VAL_EP_LoS),
-                "Left": np.mean(VAL_EP_LEFT),
-                "Leftstd": np.std(VAL_EP_LEFT),
-                "Right": np.mean(VAL_EP_RIGHT),
-                "Rightstd": np.std(VAL_EP_RIGHT),
-                "LNAV": np.mean(VAL_EP_LNAV),
-                "LNAVstd": np.std(VAL_EP_LNAV)
-            }
+        data = {
+            "rewards": np.mean(VAL_AVG_EP_REWARDS),
+            "rewardsstd": np.std(VAL_AVG_EP_REWARDS),
+            "conflicts": np.mean(VAL_EP_CONFLICTS),
+            "LoS": np.mean(VAL_EP_LoS),
+            "LoSstd": np.std(VAL_EP_LoS),
+            "Left": np.mean(VAL_EP_LEFT),
+            "Leftstd": np.std(VAL_EP_LEFT),
+            "Right": np.mean(VAL_EP_RIGHT),
+            "Rightstd": np.std(VAL_EP_RIGHT),
+            "LNAV": np.mean(VAL_EP_LNAV),
+            "LNAVstd": np.std(VAL_EP_LNAV)
+        }
 
-            du.write_validation_info(data, EXPERIMENT_NAME)
-            CONTROLLER.update_best_weights(np.mean(VAL_EP_LoS), EXPERIMENT_NAME)
-        else:
-            print(f"Now, i would save:\n {VAL_AVG_EP_REWARDS}\n {VAL_EP_CONFLICTS}\n {VAL_EP_LoS}")
+        du.write_validation_info(data, EXPERIMENT_NAME)
+        CONTROLLER.update_best_weights(np.mean(VAL_EP_LoS), EXPERIMENT_NAME)
 
         print(f"episode: {EPISODE_COUNTER}, going over to training")
 

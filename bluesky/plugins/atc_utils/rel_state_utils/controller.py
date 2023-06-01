@@ -47,6 +47,7 @@ class Controller(object):
         :param exp_name: name of the current experiment
         """
         if self.best_sep_loss is None or avg_sep_loss < self.best_sep_loss:
+            print("Updating best weights")
             self.best_sep_loss = avg_sep_loss
             self.save_weights(exp_name)
 
