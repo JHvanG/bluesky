@@ -8,7 +8,8 @@ from keras.layers import Dense, Input
 
 from bluesky.plugins.atc_utils.rel_state_utils.state import State
 from bluesky.plugins.atc_utils.replay_buffer import ReplayBuffer
-from bluesky.plugins.atc_utils.settings import LOAD_WEIGHTS, MAX_EPSILON, MIN_EPSILON, EPSILON_DECAY, LOSS_FUNCTION
+from bluesky.plugins.atc_utils.settings import LOAD_WEIGHTS, MAX_EPSILON, MIN_EPSILON, EPSILON_DECAY, LOSS_FUNCTION, \
+    SAVE_RESULTS
 
 
 class Controller(object):
@@ -116,6 +117,9 @@ class Controller(object):
         """
         This function simply saves the current model to an h5 file.
         """
+
+        if not SAVE_RESULTS:
+            return
 
         workdir = os.getcwd()
         path = os.path.join(workdir, "results/model_weights/")

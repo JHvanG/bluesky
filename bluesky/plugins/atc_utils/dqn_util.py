@@ -278,6 +278,9 @@ def write_episode_info(data: dict, experiment_name):
 
 
 def write_validation_info(data: dict, experiment_name):
+    if not SAVE_RESULTS:
+        return
+
     workdir = os.getcwd()
     path = os.path.join(workdir, "results/validation_results/")
     write_to_csv(data, path, experiment_name)
