@@ -1,0 +1,137 @@
+The following modules were not unloaded:
+  (Use "module --force purge" to unload all):
+
+  1) 2023.01   2) StdEnv
+Python 3.9.6
+/scratch/s3813053/.envs/bluesky/bin/python3
+2023-06-01 10:05:33.733305: I tensorflow/tsl/cuda/cudart_stub.cc:28] Could not find cuda drivers on your machine, GPU will not be used.
+2023-06-01 10:05:35.691498: I tensorflow/tsl/cuda/cudart_stub.cc:28] Could not find cuda drivers on your machine, GPU will not be used.
+2023-06-01 10:05:35.697330: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2023-06-01 10:05:42.235383: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+Using Python-based geo functions
+3 SPARSE 64 100000 dqn_relative.scn
+Reading config from /home2/s3813053/bluesky/settings.cfg
+Reading magnetic variation data
+Loading global navigation database...
+Reading cache: /home2/s3813053/bluesky/cache/navdata.p
+Warning: RTree could not be loaded. areafilter get_intersecting and get_knearest won't work
+Successfully loaded OpenAP performance model
+Failed to load BADA performance model
+Successfully loaded legacy performance model
+Successfully loaded plugin AREA
+Successfully loaded plugin DATAFEED
+Loading global navigation database...
+Reading cache: /home2/s3813053/bluesky/cache/navdata.p
+Loading global navigation database...
+Reading cache: /home2/s3813053/bluesky/cache/navdata.p
+loading with Huber loss
+Model: "sequential"
+_________________________________________________________________
+ Layer (type)                Output Shape              Param #   
+=================================================================
+ dense (Dense)               (None, 64)                768       
+                                                                 
+ dense_1 (Dense)             (None, 32)                2080      
+                                                                 
+ dense_2 (Dense)             (None, 3)                 99        
+                                                                 
+=================================================================
+Total params: 2,947
+Trainable params: 2,947
+Non-trainable params: 0
+_________________________________________________________________
+None
+loading with Huber loss
+Model: "sequential_1"
+_________________________________________________________________
+ Layer (type)                Output Shape              Param #   
+=================================================================
+ dense_3 (Dense)             (None, 64)                768       
+                                                                 
+ dense_4 (Dense)             (None, 32)                2080      
+                                                                 
+ dense_5 (Dense)             (None, 3)                 99        
+                                                                 
+=================================================================
+Total params: 2,947
+Trainable params: 2,947
+Non-trainable params: 0
+_________________________________________________________________
+Traceback (most recent call last):
+  File "/home2/s3813053/bluesky/bluesky/stack/simstack.py", line 79, in process
+    success, echotext = cmdobj(argstring)
+  File "/home2/s3813053/bluesky/bluesky/stack/cmdparser.py", line 83, in __call__
+    ret = self.callback(*args)
+  File "/home2/s3813053/bluesky/bluesky/simulation/simulation.py", line 176, in reset
+    simtime.reset()
+  File "/home2/s3813053/bluesky/bluesky/core/simtime.py", line 80, in reset
+    fun.trigger()
+  File "/home2/s3813053/bluesky/bluesky/plugins/DQN_main_rel_state.py", line 293, in reset
+    "average reward": TOTAL_REWARD / du.N_INSTRUCTIONS,
+ZeroDivisionError: division by zero
+Traceback (most recent call last):
+  File "/home2/s3813053/bluesky/bluesky/stack/simstack.py", line 79, in process
+    success, echotext = cmdobj(argstring)
+  File "/home2/s3813053/bluesky/bluesky/stack/cmdparser.py", line 83, in __call__
+    ret = self.callback(*args)
+  File "/home2/s3813053/bluesky/bluesky/simulation/simulation.py", line 176, in reset
+    simtime.reset()
+  File "/home2/s3813053/bluesky/bluesky/core/simtime.py", line 80, in reset
+    fun.trigger()
+  File "/home2/s3813053/bluesky/bluesky/plugins/DQN_main_rel_state.py", line 293, in reset
+    "average reward": TOTAL_REWARD / du.N_INSTRUCTIONS,
+ZeroDivisionError: division by zero
+Traceback (most recent call last):
+  File "/home2/s3813053/bluesky/bluesky/stack/simstack.py", line 79, in process
+    success, echotext = cmdobj(argstring)
+  File "/home2/s3813053/bluesky/bluesky/stack/cmdparser.py", line 83, in __call__
+    ret = self.callback(*args)
+  File "/home2/s3813053/bluesky/bluesky/simulation/simulation.py", line 176, in reset
+    simtime.reset()
+  File "/home2/s3813053/bluesky/bluesky/core/simtime.py", line 80, in reset
+    fun.trigger()
+  File "/home2/s3813053/bluesky/bluesky/plugins/DQN_main_rel_state.py", line 293, in reset
+    "average reward": TOTAL_REWARD / du.N_INSTRUCTIONS,
+ZeroDivisionError: division by zero
+slurmstepd: error: *** JOB 2327208 ON node39 CANCELLED AT 2023-06-02T09:46:18 ***
+
+###############################################################################
+Hábrók Cluster
+Job 2327208 for user 's3813053'
+Finished at: Fri Jun  2 09:46:19 CEST 2023
+
+Job details:
+============
+
+Job ID              : 2327208
+Name                : atm_sparse5comp.sh
+User                : s3813053
+Partition           : regularlong
+Nodes               : node39
+Number of Nodes     : 1
+Cores               : 1
+Number of Tasks     : 1
+State               : CANCELLED,CANCELLED by 33813053
+Submit              : 2023-06-01T10:04:15
+Start               : 2023-06-01T10:05:14
+End                 : 2023-06-02T09:46:19
+Reserved walltime   : 6-00:00:00
+Used walltime       :   23:41:05
+Used CPU time       :   04:07:39 (efficiency: 17.43%)
+% User (Computation): 99.76%
+% System (I/O)      :  0.23%
+Mem reserved        : 4G
+Max Mem (Node/step) : 467.90M (node39, per node)
+Full Max Mem usage  : 467.90M
+Total Disk Read     : 4.80M
+Total Disk Write    : 683.59K
+
+Acknowledgements:
+=================
+
+Please see this page for information about acknowledging Hábrók in your publications:
+
+https://wiki.hpc.rug.nl/habrok/introduction/scientific_output
+
+################################################################################
