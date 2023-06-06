@@ -88,9 +88,7 @@ def closest_point_of_approach(ac1: tuple[float, float, float, float], ac2: tuple
             min_dist = cur_dist
         else:
             if step == 1:
-                print("The CPA is behind the aircraft")
                 return 1000000.0
-            print("Found closest distance")
             return min_dist
 
     return min_dist

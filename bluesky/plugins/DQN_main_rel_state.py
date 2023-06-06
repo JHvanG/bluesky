@@ -23,9 +23,11 @@ from bluesky.plugins.atc_utils.settings import EVAL_COOLDOWN, EPISODE_LIMIT, TIM
                                                SAVE_RESULTS, BATCH_SIZE, BUFFER_SIZE, LOSS_FUNCTION, REWARD_FUNCTION, \
                                                TRAIN_LENGTH, VALIDATION_LENGTH, SEP_REWARD
 
-EXPERIMENT_NAME = "_{}tran_{}_{}seprew_{}_{}batch_{}buffer_{}train_{}update_{}alert_{}decay_{}epsilon".format(
-    NUM_TRANS, REWARD_FUNCTION, SEP_REWARD, LOSS_FUNCTION, BATCH_SIZE, BUFFER_SIZE,
-    TRAIN_INTERVAL, TARGET_INTERVAL, SEP_REP_HOR, EPSILON_DECAY, MIN_EPSILON).replace(".", "_")
+# EXPERIMENT_NAME = "_{}tran_{}_{}seprew_{}_{}batch_{}buffer_{}train_{}update_{}alert_{}decay_{}epsilon".format(
+#     NUM_TRANS, REWARD_FUNCTION, SEP_REWARD, LOSS_FUNCTION, BATCH_SIZE, BUFFER_SIZE,
+#     TRAIN_INTERVAL, TARGET_INTERVAL, SEP_REP_HOR, EPSILON_DECAY, MIN_EPSILON).replace(".", "_")
+
+EXPERIMENT_NAME = "TEST"
 
 EPISODE_COUNTER = 0                         # counter to keep track of how many episodes have passed
 VALIDATION_COUNTER = 0                      # counter to keep track of how many episodes the validation has taken
@@ -41,6 +43,7 @@ LoS_PAIRS = []                              # list of aircraft that have current
 
 TOTAL_REWARD = 0                            # storage for total obtained reward this episode
 N_CONFLICTS = 0                             # counter for the number of conflicts that have been encountered
+N_RESOLVED = 0                              # test for counting fails and successes
 
 VAL_AVG_EP_REWARDS = []                     # list of average rewards for validation episodes
 VAL_EP_CONFLICTS = []                       # list of n conflicts per validation episode
@@ -166,6 +169,8 @@ def update():
     global N_CONFLICTS
     global PREVIOUS_ACTIONS
 
+    global N_RESOLVED
+
     # TODO: check for training or testing episode
     #       For training we do what we do now
     #       For testing, we remove the randomness from action selection, keep most of the logic but do not train
@@ -177,7 +182,8 @@ def update():
 
     TIMER = TIMER + 1
 
-    if TIMER == TIME_LIMIT or N_CONFLICTS >= CONFLICT_LIMIT:
+    # if TIMER == TIME_LIMIT or N_CONFLICTS >= CONFLICT_LIMIT:
+    if TIMER == TIME_LIMIT or N_RESOLVED >= CONFLICT_LIMIT:
         stack.stack("RESET")
         return
 
@@ -213,6 +219,9 @@ def update():
                     done = True
                 else:
                     done = False
+
+                if done:
+                    N_RESOLVED += 1
 
                 if not VALIDATING:
                     CONTROLLER.store_experiences(prev_state, action, reward, current_state, done)
@@ -275,6 +284,10 @@ def reset():
     global VAL_EP_LoS
     global VALIDATING
 
+    global N_RESOLVED
+
+    print(f"{N_RESOLVED} conflicts completed (fail/success)")
+
     if not VALIDATING:
         EPISODE_COUNTER += 1
 
@@ -291,7 +304,8 @@ def reset():
                 "episode": EPISODE_COUNTER,
                 "loss": loss,
                 "average reward": TOTAL_REWARD / du.N_INSTRUCTIONS,
-                "conflicts": N_CONFLICTS,
+                # "conflicts": N_CONFLICTS,
+                "conflicts": N_RESOLVED,
                 "duration": round(time.time() - START, 2),
                 "epsilon": CONTROLLER.epsilon
             }
@@ -303,7 +317,8 @@ def reset():
                 "episode": EPISODE_COUNTER,
                 "loss": None,
                 "average reward": TOTAL_REWARD / du.N_INSTRUCTIONS,
-                "conflicts": N_CONFLICTS,
+                # "conflicts": N_CONFLICTS,
+                "conflicts": N_RESOLVED,
                 "duration": round(time.time() - START, 2),
                 "epsilon": CONTROLLER.epsilon
             }
@@ -312,7 +327,8 @@ def reset():
     else:
         VALIDATION_COUNTER += 1
         VAL_AVG_EP_REWARDS.append(TOTAL_REWARD / du.N_INSTRUCTIONS)
-        VAL_EP_CONFLICTS.append(N_CONFLICTS)
+        # VAL_EP_CONFLICTS.append(N_CONFLICTS)
+        VAL_EP_CONFLICTS.append(N_RESOLVED)
         VAL_EP_LoS.append(du.N_LoS)
         VAL_EP_LEFT.append(du.N_LEFT)
         VAL_EP_RIGHT.append(du.N_RIGHT)
@@ -362,6 +378,8 @@ def reset():
     N_CONFLICTS = 0
     TIMER = 0
     START = 0
+
+    N_RESOLVED = 0
 
     du.reset_variables()
 
