@@ -6,7 +6,7 @@ LOAD_WEIGHTS = False                    # boolean to dictate whether previous we
 NUM_TRANS = bs.num_approaches           # either 2 or 3 transitions
 
 EVAL_COOLDOWN = 4                       # cooldown to let action take effect before applying reward
-EPISODE_LIMIT = 10000                   # limits the amount of episodes
+EPISODE_LIMIT = 1000#0                   # limits the amount of episodes
 TIME_LIMIT = 720                        # 1440 updates equates to approximately 2 hours of simulation time
 CONFLICT_LIMIT = 20                     # NOTE: rather randomly selected (was set to 20)
 TRAIN_INTERVAL = 1                      # the number of episodes before retraining the network (was set to 2)
