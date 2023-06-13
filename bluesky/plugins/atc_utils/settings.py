@@ -1,7 +1,7 @@
 import bluesky as bs
 
 # Experiment settings
-SAVE_RESULTS = True                     # boolean to dictate whether results are written to the csv
+SAVE_RESULTS = False                     # boolean to dictate whether results are written to the csv
 LOAD_WEIGHTS = False                    # boolean to dictate whether previous weights should be loaded
 NUM_TRANS = bs.num_approaches           # either 2 or 3 transitions
 
@@ -23,7 +23,7 @@ VALIDATION_LENGTH = 5                   # number of episodes for model validatio
 
 # Generation settings
 VARYING_SPAWN = True if NUM_TRANS == 2 else False      # boolean to dictate whether there is randomness in the spawn of an aircraft
-GEN_INTERVAL = 360.0 if NUM_TRANS == 2 else 120.0      # time (seconds) it takes between spawn calls (180 for 3 after one another or 360 for two on equal dist)
+GEN_INTERVAL = 360.0 if NUM_TRANS == 2 else 190.0      # time (seconds) it takes between spawn calls (180 for 3 after one another or 360 for two on equal dist)
 
 # DQN exploration parameters
 MAX_EPSILON = 1.0                       # maximum for exploration parameter
