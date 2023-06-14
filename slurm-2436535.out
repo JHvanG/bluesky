@@ -71141,3 +71141,44 @@ Loading global navigation database...
 Reading cache: /home2/s3813053/bluesky/cache/navdata.p
 Plugin reset finished at: 2023-06-10 15:27:45
 BlueSky normal end.
+slurmstepd: error: *** JOB 2436535 ON node50 CANCELLED AT 2023-06-13T10:59:33 DUE TO TIME LIMIT ***
+
+###############################################################################
+Hábrók Cluster
+Job 2436535 for user 's3813053'
+Finished at: Tue Jun 13 10:59:34 CEST 2023
+
+Job details:
+============
+
+Job ID              : 2436535
+Name                : atm_cpa1.sh
+User                : s3813053
+Partition           : regularlong
+Nodes               : node50
+Number of Nodes     : 1
+Cores               : 1
+Number of Tasks     : 1
+State               : CANCELLED,TIMEOUT
+Submit              : 2023-06-07T10:59:14
+Start               : 2023-06-07T10:59:15
+End                 : 2023-06-13T10:59:34
+Reserved walltime   : 6-00:00:00
+Used walltime       : 6-00:00:19
+Used CPU time       : 3-05:17:16 (efficiency: 53.67%)
+% User (Computation): 99.56%
+% System (I/O)      :  0.44%
+Mem reserved        : 4G
+Max Mem (Node/step) : 1.96G (node50, per node)
+Full Max Mem usage  : 1.96G
+Total Disk Read     : 4.80M
+Total Disk Write    : 683.59K
+
+Acknowledgements:
+=================
+
+Please see this page for information about acknowledging Hábrók in your publications:
+
+https://wiki.hpc.rug.nl/habrok/introduction/scientific_output
+
+################################################################################

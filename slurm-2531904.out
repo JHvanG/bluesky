@@ -1,0 +1,60 @@
+The following modules were not unloaded:
+  (Use "module --force purge" to unload all):
+
+  1) 2023.01   2) StdEnv
+Python 3.9.6
+/scratch/s3813053/.envs/bluesky/bin/python3
+2023-06-14 08:40:57.103993: I tensorflow/tsl/cuda/cudart_stub.cc:28] Could not find cuda drivers on your machine, GPU will not be used.
+2023-06-14 08:41:00.503675: I tensorflow/tsl/cuda/cudart_stub.cc:28] Could not find cuda drivers on your machine, GPU will not be used.
+2023-06-14 08:41:00.505529: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2023-06-14 08:41:23.226774: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+Using Python-based geo functions
+3 LNAV 64 10000 dqn_relative.scn
+Reading config from /home2/s3813053/bluesky/settings.cfg
+Reading magnetic variation data
+Loading global navigation database...
+Reading cache: /home2/s3813053/bluesky/cache/navdata.p
+Warning: RTree could not be loaded. areafilter get_intersecting and get_knearest won't work
+Successfully loaded OpenAP performance model
+Failed to load BADA performance model
+Successfully loaded legacy performance model
+Successfully loaded plugin AREA
+Successfully loaded plugin DATAFEED
+Loading global navigation database...
+Reading cache: /home2/s3813053/bluesky/cache/navdata.p
+Loading global navigation database...
+Reading cache: /home2/s3813053/bluesky/cache/navdata.p
+loading with Huber loss
+Model: "sequential"
+_________________________________________________________________
+ Layer (type)                Output Shape              Param #   
+=================================================================
+ dense (Dense)               (None, 64)                768       
+                                                                 
+ dense_1 (Dense)             (None, 32)                2080      
+                                                                 
+ dense_2 (Dense)             (None, 3)                 99        
+                                                                 
+=================================================================
+Total params: 2,947
+Trainable params: 2,947
+Non-trainable params: 0
+_________________________________________________________________
+None
+loading with Huber loss
+Model: "sequential_1"
+_________________________________________________________________
+ Layer (type)                Output Shape              Param #   
+=================================================================
+ dense_3 (Dense)             (None, 64)                768       
+                                                                 
+ dense_4 (Dense)             (None, 32)                2080      
+                                                                 
+ dense_5 (Dense)             (None, 3)                 99        
+                                                                 
+=================================================================
+Total params: 2,947
+Trainable params: 2,947
+Non-trainable params: 0
+_________________________________________________________________
