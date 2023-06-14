@@ -1,7 +1,7 @@
 import bluesky as bs
 
 # Experiment settings
-SAVE_RESULTS = True                     # boolean to dictate whether results are written to the csv
+SAVE_RESULTS = False                     # boolean to dictate whether results are written to the csv
 LOAD_WEIGHTS = False                    # boolean to dictate whether previous weights should be loaded
 NUM_TRANS = bs.num_approaches           # either 2 or 3 transitions
 
@@ -16,6 +16,7 @@ BATCH_SIZE = bs.batch_size              # batch size (initial training was with 
 # LOSS_FUNCTION = "mse"                 # the loss function is mse, but then this should be clipped
 LOSS_FUNCTION = "huber"                 # huber loss is similar to clipping MSE and adds stability
 REWARD_FUNCTION = bs.reward_function    # Reward function can be LNAV, CPA or SPARSE
+LR = bs.learning_rate                   # Learning rate for model
 
 # Validation variables
 TRAIN_LENGTH = 50                       # number of episodes used for training

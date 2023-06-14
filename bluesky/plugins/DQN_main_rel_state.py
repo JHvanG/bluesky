@@ -20,12 +20,14 @@ from cpa import closest_point_of_approach as cpa
 from bluesky.plugins.atc_utils.settings import EVAL_COOLDOWN, EPISODE_LIMIT, TIME_LIMIT, \
                                                CONFLICT_LIMIT, TRAIN_INTERVAL, TARGET_INTERVAL, \
                                                SEP_REP_HOR, EPSILON_DECAY, MIN_EPSILON, NUM_TRANS, \
-                                               SAVE_RESULTS, BATCH_SIZE, BUFFER_SIZE, LOSS_FUNCTION, REWARD_FUNCTION, \
-                                               TRAIN_LENGTH, VALIDATION_LENGTH, SEP_REWARD
+                                               BATCH_SIZE, BUFFER_SIZE, LOSS_FUNCTION, REWARD_FUNCTION, \
+                                               TRAIN_LENGTH, VALIDATION_LENGTH, SEP_REWARD, LR
 
-EXPERIMENT_NAME = "_{}tran_{}_{}seprew_{}_{}batch_{}buffer_{}train_{}update_{}alert_{}decay_{}epsilon".format(
-    NUM_TRANS, REWARD_FUNCTION, SEP_REWARD, LOSS_FUNCTION, BATCH_SIZE, BUFFER_SIZE,
-    TRAIN_INTERVAL, TARGET_INTERVAL, SEP_REP_HOR, EPSILON_DECAY, MIN_EPSILON).replace(".", "_")
+# EXPERIMENT_NAME = "_{}tran_{}_{}seprew_{}_{}batch_{}buffer_{}train_{}update_{}alert_{}decay_{}epsilon".format(
+#     NUM_TRANS, REWARD_FUNCTION, SEP_REWARD, LOSS_FUNCTION, BATCH_SIZE, BUFFER_SIZE,
+#     TRAIN_INTERVAL, TARGET_INTERVAL, SEP_REP_HOR, EPSILON_DECAY, MIN_EPSILON).replace(".", "_")
+
+EXPERIMENT_NAME = "LR_test_{}".format(LR).replace(".", "_")
 
 EPISODE_COUNTER = 0                         # counter to keep track of how many episodes have passed
 VALIDATION_COUNTER = 0                      # counter to keep track of how many episodes the validation has taken
@@ -59,7 +61,7 @@ CONTROLLER = Controller(EXPERIMENT_NAME)    # atc agent based on a DQN
 def init_plugin():
     # Addtional initilisation code
     print("Writing with extension: {}".format(EXPERIMENT_NAME))
-    print(f"{NUM_TRANS} approaches\n{REWARD_FUNCTION} reward\n{BATCH_SIZE} batch\n{BUFFER_SIZE} buffer\n")
+    print(f"{NUM_TRANS} approaches\n{REWARD_FUNCTION} reward\n{BATCH_SIZE} batch\n{BUFFER_SIZE} buffer\n{LR} learning rate\n")
 
     # Configuration parameters
     config = {

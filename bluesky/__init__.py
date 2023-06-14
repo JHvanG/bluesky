@@ -32,10 +32,11 @@ num_approaches = None
 reward_function = None
 batch_size = None
 buffer_size = None
+learning_rate = None
 
 
 def init(mode='sim', configfile=None, scenfile=None, discoverable=False,
-         gui=None, detached=False, workdir=None, approaches=2, reward="CPA", batch=64, buffer=10000, **kwargs):
+         gui=None, detached=False, workdir=None, approaches=2, reward="CPA", batch=64, buffer=10000, lr=0.001, **kwargs):
     ''' Initialize bluesky modules.
 
         Arguments:
@@ -53,13 +54,15 @@ def init(mode='sim', configfile=None, scenfile=None, discoverable=False,
     global reward_function
     global batch_size
     global buffer_size
+    global learning_rate
 
-    print(approaches, reward, batch, buffer, scenfile)
+    print(approaches, reward, batch, buffer, lr, scenfile)
 
     num_approaches = approaches
     reward_function = reward
     batch_size = batch
     buffer_size = buffer
+    learning_rate = lr
 
     # Argument checking
     assert mode in ('sim', 'client', 'server'), f'BlueSky init: Unrecognised mode {mode}. '\
@@ -100,7 +103,7 @@ def init(mode='sim', configfile=None, scenfile=None, discoverable=False,
     if mode == 'server':
         global server
         from bluesky.network.server import Server
-        server = Server(discoverable, approaches, reward, batch, buffer, configfile, scenfile)
+        server = Server(discoverable, approaches, reward, batch, buffer, lr, configfile, scenfile)
 
     # The remaining objects are only instantiated in the sim nodes
     if mode == 'sim':
