@@ -1,7 +1,7 @@
 import bluesky as bs
 
 # Experiment settings
-SAVE_RESULTS = False                     # boolean to dictate whether results are written to the csv
+SAVE_RESULTS = True                     # boolean to dictate whether results are written to the csv
 LOAD_WEIGHTS = False                    # boolean to dictate whether previous weights should be loaded
 NUM_TRANS = bs.num_approaches           # either 2 or 3 transitions
 
