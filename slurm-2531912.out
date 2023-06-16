@@ -58,3 +58,15 @@ Total params: 2,947
 Trainable params: 2,947
 Non-trainable params: 0
 _________________________________________________________________
+Traceback (most recent call last):
+  File "/home2/s3813053/bluesky/bluesky/stack/simstack.py", line 79, in process
+    success, echotext = cmdobj(argstring)
+  File "/home2/s3813053/bluesky/bluesky/stack/cmdparser.py", line 83, in __call__
+    ret = self.callback(*args)
+  File "/home2/s3813053/bluesky/bluesky/simulation/simulation.py", line 176, in reset
+    simtime.reset()
+  File "/home2/s3813053/bluesky/bluesky/core/simtime.py", line 80, in reset
+    fun.trigger()
+  File "/home2/s3813053/bluesky/bluesky/plugins/DQN_main_rel_state.py", line 304, in reset
+    "episode": EPISODE_COUNTER,
+ZeroDivisionError: division by zero
