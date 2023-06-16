@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --time=6-00:00:00
 #SBATCH --mem=10G
-#SBATCH --nodelist=node01
+#SBATCH --nodelist=node10
 #SBATCH --partition=regular
 #SBATCH --mail-type=FAIL,END
 #SBATCH --mail-user=j.h.van.gelder.1@student.rug.nl
