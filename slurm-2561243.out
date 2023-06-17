@@ -58,3 +58,44 @@ Total params: 2,947
 Trainable params: 2,947
 Non-trainable params: 0
 _________________________________________________________________
+slurmstepd: error: *** JOB 2561243 ON node27 CANCELLED AT 2023-06-17T13:02:56 ***
+
+###############################################################################
+Hábrók Cluster
+Job 2561243 for user 's3813053'
+Finished at: Sat Jun 17 13:02:58 CEST 2023
+
+Job details:
+============
+
+Job ID              : 2561243
+Name                : atm_lnav3comp.sh
+User                : s3813053
+Partition           : regularlong
+Nodes               : node27
+Number of Nodes     : 1
+Cores               : 1
+Number of Tasks     : 1
+State               : CANCELLED,CANCELLED by 33813053
+Submit              : 2023-06-16T13:02:05
+Start               : 2023-06-16T13:02:06
+End                 : 2023-06-17T13:02:57
+Reserved walltime   : 6-00:00:00
+Used walltime       : 1-00:00:51
+Used CPU time       :   23:04:40 (efficiency: 96.10%)
+% User (Computation): 97.43%
+% System (I/O)      :  2.57%
+Mem reserved        : 10G
+Max Mem (Node/step) : 720.46M (node27, per node)
+Full Max Mem usage  : 720.46M
+Total Disk Read     : 4.80M
+Total Disk Write    : 683.59K
+
+Acknowledgements:
+=================
+
+Please see this page for information about acknowledging Hábrók in your publications:
+
+https://wiki.hpc.rug.nl/habrok/introduction/scientific_output
+
+################################################################################

@@ -29363,3 +29363,44 @@ Plugin reset at: 2023-06-16 11:45:20
 resetting main plugin
 20 conflicts completed (fail/success)
 Episode 3008 finished
+slurmstepd: error: *** JOB 2531912 ON node49 CANCELLED AT 2023-06-17T13:01:48 ***
+
+###############################################################################
+Hábrók Cluster
+Job 2531912 for user 's3813053'
+Finished at: Sat Jun 17 13:01:50 CEST 2023
+
+Job details:
+============
+
+Job ID              : 2531912
+Name                : atm_sparse4comp.sh
+User                : s3813053
+Partition           : regularlong
+Nodes               : node49
+Number of Nodes     : 1
+Cores               : 1
+Number of Tasks     : 1
+State               : CANCELLED,CANCELLED by 33813053
+Submit              : 2023-06-14T08:40:58
+Start               : 2023-06-14T08:40:59
+End                 : 2023-06-17T13:01:49
+Reserved walltime   : 6-00:00:00
+Used walltime       : 3-04:20:50
+Used CPU time       : 3-01:56:50 (efficiency: 96.86%)
+% User (Computation): 99.58%
+% System (I/O)      :  0.42%
+Mem reserved        : 10G
+Max Mem (Node/step) : 1.34G (node49, per node)
+Full Max Mem usage  : 1.34G
+Total Disk Read     : 4.80M
+Total Disk Write    : 683.59K
+
+Acknowledgements:
+=================
+
+Please see this page for information about acknowledging Hábrók in your publications:
+
+https://wiki.hpc.rug.nl/habrok/introduction/scientific_output
+
+################################################################################

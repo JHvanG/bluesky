@@ -58,3 +58,44 @@ Total params: 2,947
 Trainable params: 2,947
 Non-trainable params: 0
 _________________________________________________________________
+slurmstepd: error: *** JOB 2561236 ON node12 CANCELLED AT 2023-06-17T13:03:12 ***
+
+###############################################################################
+Hábrók Cluster
+Job 2561236 for user 's3813053'
+Finished at: Sat Jun 17 13:03:13 CEST 2023
+
+Job details:
+============
+
+Job ID              : 2561236
+Name                : atm_cpa2comp.sh
+User                : s3813053
+Partition           : regularlong
+Nodes               : node12
+Number of Nodes     : 1
+Cores               : 1
+Number of Tasks     : 1
+State               : CANCELLED,CANCELLED by 33813053
+Submit              : 2023-06-16T13:00:56
+Start               : 2023-06-16T13:00:57
+End                 : 2023-06-17T13:03:13
+Reserved walltime   : 6-00:00:00
+Used walltime       : 1-00:02:16
+Used CPU time       :   23:25:36 (efficiency: 97.46%)
+% User (Computation): 98.48%
+% System (I/O)      :  1.52%
+Mem reserved        : 10G
+Max Mem (Node/step) : 825.48M (node12, per node)
+Full Max Mem usage  : 825.48M
+Total Disk Read     : 4.80M
+Total Disk Write    : 683.59K
+
+Acknowledgements:
+=================
+
+Please see this page for information about acknowledging Hábrók in your publications:
+
+https://wiki.hpc.rug.nl/habrok/introduction/scientific_output
+
+################################################################################
