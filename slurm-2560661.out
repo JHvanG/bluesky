@@ -1,0 +1,47 @@
+The following modules were not unloaded:
+  (Use "module --force purge" to unload all):
+
+  1) 2023.01   2) StdEnv
+Python 3.9.6
+/scratch/s3813053/.envs/bluesky/bin/python3
+slurmstepd: error: *** JOB 2560661 ON node11 CANCELLED AT 2023-06-16T11:58:08 ***
+
+###############################################################################
+Hábrók Cluster
+Job 2560661 for user 's3813053'
+Finished at: Fri Jun 16 11:58:10 CEST 2023
+
+Job details:
+============
+
+Job ID              : 2560661
+Name                : test.sh
+User                : s3813053
+Partition           : regularlong
+Nodes               : node11
+Number of Nodes     : 1
+Cores               : 1
+Number of Tasks     : 1
+State               : CANCELLED by 33813053,CANCELLED
+Submit              : 2023-06-16T11:57:54
+Start               : 2023-06-16T11:57:55
+End                 : 2023-06-16T11:58:09
+Reserved walltime   : 6-00:00:00
+Used walltime       :   00:00:14
+Used CPU time       : --
+% User (Computation): --
+% System (I/O)      : --
+Mem reserved        : 10G
+Max Mem (Node/step) : 18.87M (node11, per node)
+Full Max Mem usage  : 18.87M
+Total Disk Read     : 4.80M
+Total Disk Write    : 683.59K
+
+Acknowledgements:
+=================
+
+Please see this page for information about acknowledging Hábrók in your publications:
+
+https://wiki.hpc.rug.nl/habrok/introduction/scientific_output
+
+################################################################################
