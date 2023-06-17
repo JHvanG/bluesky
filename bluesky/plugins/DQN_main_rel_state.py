@@ -152,10 +152,25 @@ def waiting_for_reward(ac1: str, ac2: str) -> bool:
     :param ac2: string of aircraft id of second aircraft
     :return: True if still in previous actions, else False
     """
+
     for _, _, stored_ac1, stored_ac2, _, _ in PREVIOUS_ACTIONS:
         if ac1 == stored_ac1 and ac2 == stored_ac2:
             return True
     return False
+
+
+def get_pairs_waiting_for_reward():
+    """
+    This function returns a list of aircraft pairs that currently await feedback on their previously received instruction.
+
+    :return: list of aircraft pairs
+    """
+
+    pairs_waiting_for_reward = []
+    for _, _, ac1, ac2, _, _ in PREVIOUS_ACTIONS:
+        pairs_waiting_for_reward.append((ac1, ac2))
+
+    return pairs_waiting_for_reward
 
 
 def update():
@@ -222,6 +237,7 @@ def update():
 
                 if done:
                     N_RESOLVED += 1
+                    # todo: resume nav
 
                 if not VALIDATING:
                     CONTROLLER.store_experiences(prev_state, action, reward, current_state, done)
@@ -233,8 +249,10 @@ def update():
     # this variable contains all the closest conflict pairs
     current_conflict_pairs = pu.get_conflict_pairs(CONFLICTS_IN_COOLDOWN)  # list of tuples
 
-    # aircraft not in current conflicts that received instructions can return to their flightplans
-    du.allow_resume_navigation(current_conflict_pairs)
+    pairs_waiting_for_reward = get_pairs_waiting_for_reward()
+
+    # aircraft not in current conflicts that received instructions and a reward can return to their flightplans
+    du.allow_resume_navigation(current_conflict_pairs, pairs_waiting_for_reward)
 
     for (ac1, ac2) in current_conflict_pairs:
 

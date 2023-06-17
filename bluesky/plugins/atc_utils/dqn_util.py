@@ -188,7 +188,7 @@ def handle_instruction(ac: str, action: str):
         engage_lnav(ac)
 
 
-def allow_resume_navigation(conflict_pairs):
+def allow_resume_navigation(conflict_pairs, pairs_waiting_for_reward):
     """
     This function checks whether aircraft that received a heading change are allowed to resume their own navigation.
     """
@@ -198,7 +198,9 @@ def allow_resume_navigation(conflict_pairs):
     aircraft_to_keep = []
 
     for ac in INSTRUCTED_AIRCRAFT:
-        if not [pair for pair in conflict_pairs if ac in pair[0]] and ac in traf.id:
+        if not [pair for pair in conflict_pairs if ac in pair[0]] and \
+                not [pair for pair in pairs_waiting_for_reward if ac in pair[0]] and\
+                ac in traf.id:
             engage_lnav(ac)
         else:
             aircraft_to_keep.append(ac)

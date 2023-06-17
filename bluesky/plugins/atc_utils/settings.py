@@ -6,8 +6,7 @@ LOAD_WEIGHTS = False                    # boolean to dictate whether previous we
 NUM_TRANS = bs.num_approaches           # either 2 or 3 transitions
 
 EVAL_COOLDOWN = 4                       # cooldown to let action take effect before applying reward
-EPISODE_LIMIT = 7500                    # limits the amount of episodes
-TIME_LIMIT = 720                        # 1440 updates equates to approximately 2 hours of simulation time
+EPISODE_LIMIT = 7600                    # limits the amount of episodes
 CONFLICT_LIMIT = 20                     # NOTE: rather randomly selected (was set to 20)
 TRAIN_INTERVAL = 1                      # the number of episodes before retraining the network (was set to 2)
 TARGET_INTERVAL = 100                   # the number of episodes before updating the target network
@@ -23,6 +22,7 @@ TRAIN_LENGTH = 50                       # number of episodes used for training
 VALIDATION_LENGTH = 5                   # number of episodes for model validation
 
 # Generation settings
+TIME_LIMIT = 720 if NUM_TRANS == 2 else 1440           # 1440 updates equates to approximately 2 hours of simulation time
 VARYING_SPAWN = True if NUM_TRANS == 2 else False      # boolean to dictate whether there is randomness in the spawn of an aircraft
 GEN_INTERVAL = 360.0 if NUM_TRANS == 2 else 190.0      # time (seconds) it takes between spawn calls (180 for 3 after one another or 360 for two on equal dist)
 

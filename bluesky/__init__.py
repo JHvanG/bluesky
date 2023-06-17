@@ -36,7 +36,7 @@ learning_rate = None
 
 
 def init(mode='sim', configfile=None, scenfile=None, discoverable=False,
-         gui=None, detached=False, workdir=None, approaches=2, reward="CPA", batch=64, buffer=10000, lr=0.001, **kwargs):
+         gui=None, detached=False, workdir=None, approaches=2, reward="CPA", batch=64, buffer=10000, lr=0.0001, **kwargs):
     ''' Initialize bluesky modules.
 
         Arguments:
