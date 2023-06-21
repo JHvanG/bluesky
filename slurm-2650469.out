@@ -4,3 +4,44 @@ The following modules were not unloaded:
   1) 2023.01   2) StdEnv
 Python 3.9.6
 /scratch/s3813053/.envs/bluesky/bin/python3
+slurmstepd: error: *** JOB 2650469 ON node43 CANCELLED AT 2023-06-21T20:51:50 ***
+
+###############################################################################
+Hábrók Cluster
+Job 2650469 for user 's3813053'
+Finished at: Wed Jun 21 20:51:52 CEST 2023
+
+Job details:
+============
+
+Job ID              : 2650469
+Name                : atm_lnav2.sh
+User                : s3813053
+Partition           : regularlong
+Nodes               : node43
+Number of Nodes     : 1
+Cores               : 1
+Number of Tasks     : 1
+State               : CANCELLED by 33813053,CANCELLED
+Submit              : 2023-06-20T23:51:30
+Start               : 2023-06-20T23:52:42
+End                 : 2023-06-21T20:51:51
+Reserved walltime   : 6-00:00:00
+Used walltime       :   20:59:09
+Used CPU time       :   00:00:06 (efficiency:  0.01%)
+% User (Computation): 62.71%
+% System (I/O)      : 37.29%
+Mem reserved        : 10G
+Max Mem (Node/step) : 178.15M (node43, per node)
+Full Max Mem usage  : 178.15M
+Total Disk Read     : 4.80M
+Total Disk Write    : 683.59K
+
+Acknowledgements:
+=================
+
+Please see this page for information about acknowledging Hábrók in your publications:
+
+https://wiki.hpc.rug.nl/habrok/introduction/scientific_output
+
+################################################################################
