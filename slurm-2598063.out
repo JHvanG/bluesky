@@ -29328,3 +29328,44 @@ Plugin reset at: 2023-06-20 23:26:51
 resetting main plugin
 20 conflicts completed (fail/success)
 Episode 3005 finished
+slurmstepd: error: *** JOB 2598063 ON node50 CANCELLED AT 2023-06-23T17:03:56 DUE TO TIME LIMIT ***
+
+###############################################################################
+Hábrók Cluster
+Job 2598063 for user 's3813053'
+Finished at: Fri Jun 23 17:03:59 CEST 2023
+
+Job details:
+============
+
+Job ID              : 2598063
+Name                : atm_sparse5comp.sh
+User                : s3813053
+Partition           : regularlong
+Nodes               : node50
+Number of Nodes     : 1
+Cores               : 1
+Number of Tasks     : 1
+State               : CANCELLED,TIMEOUT
+Submit              : 2023-06-17T13:55:42
+Start               : 2023-06-17T17:03:37
+End                 : 2023-06-23T17:03:58
+Reserved walltime   : 6-00:00:00
+Used walltime       : 6-00:00:21
+Used CPU time       : 5-19:02:59 (efficiency: 96.56%)
+% User (Computation): 99.09%
+% System (I/O)      :  0.91%
+Mem reserved        : 10G
+Max Mem (Node/step) : 1.67G (node50, per node)
+Full Max Mem usage  : 1.67G
+Total Disk Read     : 4.80M
+Total Disk Write    : 683.59K
+
+Acknowledgements:
+=================
+
+Please see this page for information about acknowledging Hábrók in your publications:
+
+https://wiki.hpc.rug.nl/habrok/introduction/scientific_output
+
+################################################################################

@@ -29326,3 +29326,44 @@ resetting main plugin
 20 conflicts completed (fail/success)
 Episode 3004 finished
 26 conflicts and 4 losses of separation
+slurmstepd: error: *** JOB 2597984 ON node32 CANCELLED AT 2023-06-23T13:30:36 DUE TO TIME LIMIT ***
+
+###############################################################################
+Hábrók Cluster
+Job 2597984 for user 's3813053'
+Finished at: Fri Jun 23 13:30:38 CEST 2023
+
+Job details:
+============
+
+Job ID              : 2597984
+Name                : atm_cpa6comp.sh
+User                : s3813053
+Partition           : regularlong
+Nodes               : node32
+Number of Nodes     : 1
+Cores               : 1
+Number of Tasks     : 1
+State               : TIMEOUT,CANCELLED
+Submit              : 2023-06-17T13:30:27
+Start               : 2023-06-17T13:30:28
+End                 : 2023-06-23T13:30:37
+Reserved walltime   : 6-00:00:00
+Used walltime       : 6-00:00:09
+Used CPU time       : 5-19:13:57 (efficiency: 96.69%)
+% User (Computation): 98.88%
+% System (I/O)      :  1.12%
+Mem reserved        : 10G
+Max Mem (Node/step) : 2.16G (node32, per node)
+Full Max Mem usage  : 2.16G
+Total Disk Read     : 4.80M
+Total Disk Write    : 683.59K
+
+Acknowledgements:
+=================
+
+Please see this page for information about acknowledging Hábrók in your publications:
+
+https://wiki.hpc.rug.nl/habrok/introduction/scientific_output
+
+################################################################################
