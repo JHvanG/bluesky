@@ -107,7 +107,7 @@ class Server(Thread):
               f'and stream connections on port {bs.settings.stream_port}')
 
         # Create connection points for sim workers
-        self.be_event  = ctx.socket(zmq.ROUTER)
+        self.be_event = ctx.socket(zmq.ROUTER)
         self.be_event.setsockopt(zmq.IDENTITY, self.host_id)
 
         for _ in range(10):
@@ -115,7 +115,7 @@ class Server(Thread):
             try:
                 self.be_event.bind(f'tcp://*:{bs.settings.simevent_port}')
             except zmq.error.ZMQError:
-                bs.settings.stream_port = bs.settings.simevent_port + 100
+                bs.settings.simevent_port = bs.settings.simevent_port + 100
             else:
                 break
 
@@ -126,9 +126,12 @@ class Server(Thread):
             try:
                 self.be_stream.bind(f'tcp://*:{bs.settings.simstream_port}')
             except zmq.error.ZMQError:
-                bs.settings.stream_port = bs.settings.simstream_port + 100
+                bs.settings.simstream_port = bs.settings.simstream_port + 100
             else:
                 break
+
+        print(f'Accepting event connections on port {bs.settings.simevent_port},',
+              f'and stream connections on port {bs.settings.simstream_port}')
 
         # Create poller for both event connection points and the stream reader
         poller = zmq.Poller()

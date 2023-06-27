@@ -24,7 +24,7 @@ VALIDATION_LENGTH = 5                   # number of episodes for model validatio
 # Generation settings
 TIME_LIMIT = 720 if NUM_TRANS == 2 else 1440           # 1440 updates equates to approximately 2 hours of simulation time
 VARYING_SPAWN = True if NUM_TRANS == 2 else False      # boolean to dictate whether there is randomness in the spawn of an aircraft
-GEN_INTERVAL = 360.0 if NUM_TRANS == 2 else 190.0      # time (seconds) it takes between spawn calls (180 for 3 after one another or 360 for two on equal dist)
+GEN_INTERVAL = 360.0 if NUM_TRANS == 2 else 120.0      # time (seconds) it takes between spawn calls (120 for 3 after one another or 360 for two on equal dist)
 
 # DQN exploration parameters
 MAX_EPSILON = 1.0                       # maximum for exploration parameter
