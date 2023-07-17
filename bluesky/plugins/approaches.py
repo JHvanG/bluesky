@@ -149,18 +149,18 @@ def draw_approaches(x=0):
         first = True
         print(transition_plan)
         for star in approaches[transition]:
-            if first:
-                flightplan = read_fpl_from_txt_file(star) | transition_plan
-                first = False
-            else:
-                flightplan = read_fpl_from_txt_file(star) | first_wpt
+            # if first:
+            #     flightplan = read_fpl_from_txt_file(star) | transition_plan
+            #     first = False
+            # else:
+            #     flightplan = read_fpl_from_txt_file(star) | first_wpt
 
-            for prev, cur in zip(list(flightplan.keys()), list(flightplan.keys())[1:]):
+            for prev, cur in zip(list(transition_plan.keys()), list(transition_plan.keys())[1:]):
                 global ELEMENT_COUNTER
                 stack.stack("LINE {} {} {}".format(ELEMENT_COUNTER, prev, cur))
                 if prev in list(transition_plan.keys()) and cur in list(transition_plan.keys()):
                     print("damn right")
-                    stack.stack("COLOUR {} RED".format(ELEMENT_COUNTER))
+                    stack.stack("COLOUR {} 255,51,153".format(ELEMENT_COUNTER))
                 ELEMENT_COUNTER += 1
 
     return

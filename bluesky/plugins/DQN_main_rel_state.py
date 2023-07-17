@@ -23,11 +23,11 @@ from bluesky.plugins.atc_utils.settings import EVAL_COOLDOWN, EPISODE_LIMIT, TIM
                                                BATCH_SIZE, BUFFER_SIZE, LOSS_FUNCTION, REWARD_FUNCTION, \
                                                TRAIN_LENGTH, VALIDATION_LENGTH, SEP_REWARD, LR
 
-# EXPERIMENT_NAME = "_{}tran_{}_{}seprew_{}_{}batch_{}buffer_{}train_{}update_{}alert_{}decay_{}epsilon".format(
-#     NUM_TRANS, REWARD_FUNCTION, SEP_REWARD, LOSS_FUNCTION, BATCH_SIZE, BUFFER_SIZE,
-#     TRAIN_INTERVAL, TARGET_INTERVAL, SEP_REP_HOR, EPSILON_DECAY, MIN_EPSILON).replace(".", "_")
+EXPERIMENT_NAME = "_{}tran_{}_{}seprew_{}_{}batch_{}buffer_{}train_{}update_{}alert_{}decay_{}epsilon".format(
+    NUM_TRANS, REWARD_FUNCTION, SEP_REWARD, LOSS_FUNCTION, BATCH_SIZE, BUFFER_SIZE,
+    TRAIN_INTERVAL, TARGET_INTERVAL, SEP_REP_HOR, EPSILON_DECAY, MIN_EPSILON).replace(".", "_")
 
-EXPERIMENT_NAME = "120_{}tran_test_{}_{}batch_{}buffer".format(NUM_TRANS, REWARD_FUNCTION, BATCH_SIZE, BUFFER_SIZE).replace(".", "_")
+# EXPERIMENT_NAME = "120_{}tran_test_{}_{}batch_{}buffer".format(NUM_TRANS, REWARD_FUNCTION, BATCH_SIZE, BUFFER_SIZE).replace(".", "_")
 
 EPISODE_COUNTER = 0                         # counter to keep track of how many episodes have passed
 VALIDATION_COUNTER = 0                      # counter to keep track of how many episodes the validation has taken
